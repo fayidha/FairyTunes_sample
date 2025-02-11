@@ -1,6 +1,5 @@
 import 'package:dupepro/bottomBar.dart';
 import 'package:dupepro/controller/auth_controller.dart';
-import 'package:dupepro/home.dart';
 import 'package:dupepro/view/forgotpass.dart';
 import 'package:dupepro/view/registration.dart';
 import 'package:flutter/material.dart';
@@ -172,7 +171,7 @@ class _LoginFormState extends State<LoginForm> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => HomePage()),
+                    MaterialPageRoute(builder: (context) => BottomBarScreen()),
                   );
                 },
                 style: ButtonStyle(

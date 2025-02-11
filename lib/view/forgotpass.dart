@@ -1,16 +1,30 @@
-
-import 'package:dupepro/view/login.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dupepro/view/login.dart';
 
 class ForgotPasswordPage extends StatelessWidget {
+  final TextEditingController emailController = TextEditingController();
+
+  Future<void> resetPassword(BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: emailController.text);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset email sent! Check your inbox.')),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Error sending reset email')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    TextEditingController emailController = TextEditingController();
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.purple,
-        title: Text('Forgot Password'),
+        backgroundColor: Color(0xFF380230),
+        title: Text('Forgot Password', style: TextStyle(color: Colors.white)),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -22,7 +36,7 @@ class ForgotPasswordPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.purple,
+                color: Color(0xFF380230),
               ),
             ),
             SizedBox(height: 16),
@@ -42,23 +56,26 @@ class ForgotPasswordPage extends StatelessWidget {
             ),
             SizedBox(height: 30),
             ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Email sent!')),
-                );
-              },
+              onPressed: () => resetPassword(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
+                backgroundColor: Color(0xFF380230),
                 foregroundColor: Colors.white,
               ),
               child: Text('Send Reset Instructions'),
             ),
-
             SizedBox(height: 20),
-
-            TextButton(onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => LoginForm(),));
-            }, child: Text("Back to Login!",style: TextStyle(color: Colors.purple),))
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginForm()),
+                );
+              },
+              child: Text(
+                "Back to Login!",
+                style: TextStyle(color: Color(0xFF380230)),
+              ),
+            )
           ],
         ),
       ),
