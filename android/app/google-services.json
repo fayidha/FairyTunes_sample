@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "987940245983",
+    "project_id": "dupepro-1fef5",
+    "storage_bucket": "dupepro-1fef5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:987940245983:android:a5372b338cb87b2186f46a",
+        "android_client_info": {
+          "package_name": "com.dupe.dupepro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvVOzL1PZ6A_Qe36culUv-4sXCt5wqX9U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
