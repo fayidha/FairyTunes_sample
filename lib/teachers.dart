@@ -1,5 +1,6 @@
+
 import 'package:dupepro/chat.dart';
-import 'package:dupepro/teacherprofileview.dart';
+import 'package:dupepro/view/teacherprofileview.dart';
 import 'package:flutter/material.dart';
 
 class TeacherPage extends StatefulWidget {
@@ -53,6 +54,7 @@ class _TeacherPageState extends State<TeacherPage> {
                   Text('Category: Category ${index + 1}'),
                   Text('Location: Location ${index + 1}'),
                   Text('Phone: +91 98765432${index + 1}'),
+                  Text('Email: teacher${index + 1}@example.com'),  // Added email
                 ],
               ),
               trailing: IconButton(
@@ -66,22 +68,21 @@ class _TeacherPageState extends State<TeacherPage> {
                   );
                 },
               ),
-              onTap:() {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          TeacherProfilePage(
-                            name: 'Teacher ${index + 1}',
-                            phone: '+91 98765432${index + 1}',
-                            address: 'Address ${index + 1}',
-                            qualification: 'Qualification ${index + 1}',
-                            category: 'Category ${index + 1}',
-                          ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TeacherProfilePage(
+                      name: 'Teacher ${index + 1}',
+                      phone: '+91 98765432${index + 1}',
+                      address: 'Address ${index + 1}',
+                      qualification: 'Qualification ${index + 1}',
+                      category: 'Category ${index + 1}',
+                      email: 'teacher${index + 1}@example.com', // Passing email to profile page
                     ),
-                  );
-
-                },
+                  ),
+                );
+              },
             ),
           );
         },

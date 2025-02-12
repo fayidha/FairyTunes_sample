@@ -58,9 +58,12 @@ class ProductDetail extends StatelessWidget {
 
             // Price and Company Name
             SizedBox(height: 20),
-            Text(
-              'Company Name',
-              style: TextStyle(color: Colors.grey[600]),
+            TextButton(
+              
+              onPressed: () {
+               //
+              },
+              child: Text('Company '),
             ),
             SizedBox(height: 10),
             Text(

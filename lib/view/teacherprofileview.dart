@@ -6,6 +6,7 @@ class TeacherProfilePage extends StatelessWidget {
   final String address;
   final String qualification;
   final String category;
+  final String email;  // Added email property
 
   const TeacherProfilePage({
     super.key,
@@ -14,6 +15,7 @@ class TeacherProfilePage extends StatelessWidget {
     required this.address,
     required this.qualification,
     required this.category,
+    required this.email,  // Include email in the constructor
   });
 
   @override
@@ -30,7 +32,7 @@ class TeacherProfilePage extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           margin: const EdgeInsets.all(16),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20) ,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -43,6 +45,7 @@ class TeacherProfilePage extends StatelessWidget {
                 _buildInfoRow(Icons.location_on, 'Address:', address),
                 _buildInfoRow(Icons.school, 'Qualification:', qualification),
                 _buildInfoRow(Icons.category, 'Category:', category),
+                _buildInfoRow(Icons.email, 'Email:', email),  // Added email row
               ],
             ),
           ),

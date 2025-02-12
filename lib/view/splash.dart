@@ -81,7 +81,7 @@ class _splashState extends State<Splash> {
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [Colors.white, Colors.purple]),
+          gradient: LinearGradient(colors: [Colors.white, Color(0xFF380230)]),
         ),
         child: Center(
           child: Lottie.asset('asset/animation1.json'), // Ensure the path is correct
