@@ -25,7 +25,7 @@ class _SuccessScreenState extends State<SuccessScreen> {
             Icon(Icons.check_circle, color: Colors.green, size: 80),
             SizedBox(height: 20),
             Text(
-              "Product Added Successfully!",
+              " Added Successfully!",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),

@@ -29,7 +29,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
         children: [
 // Main content or background
           Container(
-            color: Colors.blue[200],
+            color:Color(0xFF380230),
             child: Center(
               child: Text(
                 "Background Content",

@@ -1,3 +1,4 @@
+import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/model/user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -39,6 +40,8 @@ class AuthController {
         password: password,
       );
 
+      String userId = userCredential.user!.uid;
+
       // Check if user exists in Firestore
       DocumentSnapshot userDoc = await _firestore.collection("users").doc(
           userCredential.user!.uid).get();
@@ -46,7 +49,7 @@ class AuthController {
       if (!userDoc.exists) {
         return "User not found"; // Prevents unauthorized logins
       }
-
+      await Session.saveSession(email, userId);
       return null; // Success
     } on FirebaseAuthException catch (e) {
       return e.message; // Return error message

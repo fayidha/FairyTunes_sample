@@ -48,6 +48,8 @@ class _splashState extends State<Splash> {
 
 
 
+import 'package:dupepro/bottomBar.dart';
+import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -64,16 +66,39 @@ class _splashState extends State<Splash> {
   void initState() {
     super.initState();
     // Add a post-frame callback to delay the navigation to the next screen
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+   /* WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(Duration(seconds: 3), () {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => LoginForm()),
         );
       });
-    });
+    });*/
+    _checkSession();
   }
 
+
+  // Check session and navigate accordingly
+  Future<void> _checkSession() async {
+    final sessionData = await Session.getSession();
+    final bool isLoggedIn = sessionData['uid'] != null;
+
+    // Delay for splash animation
+    await Future.delayed(const Duration(seconds: 3));
+
+    // Navigate to Home if logged in, else Login
+    if (isLoggedIn) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const BottomBarScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginForm()),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,7 +109,7 @@ class _splashState extends State<Splash> {
           gradient: LinearGradient(colors: [Colors.white, Color(0xFF380230)]),
         ),
         child: Center(
-          child: Lottie.asset('asset/animation1.json'), // Ensure the path is correct
+          child: Lottie.asset('asset/animation1.json'),
         ),
       ),
     );

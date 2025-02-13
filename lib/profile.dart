@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dupepro/Company_add.dart';
 import 'package:dupepro/creategrp.dart';
 import 'package:dupepro/editprofile.dart';
 import 'package:dupepro/model/user_model.dart';
+import 'package:dupepro/view/Company_add.dart';
+
 import 'package:dupepro/view/Teacher_profile_Add.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

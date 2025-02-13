@@ -1,14 +1,40 @@
 
+import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
 import 'package:dupepro/product.dart';
 import 'package:dupepro/teachers.dart';
 import 'package:dupepro/troups.dart';
+import 'package:dupepro/view/login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+   String _userName="Unknown User";
+   String _userEmail="No Email Found";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserSession();
+  }
+
+
+  Future<void> _loadUserSession() async {
+    Map<String, dynamic>? userDetails = await Session.getUserDetails();
+
+    setState(() {
+      _userName = userDetails?['name'];
+      _userEmail = userDetails?['email'] ;
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,8 +62,8 @@ class HomePage extends StatelessWidget {
         child: ListView(
           children: [
             UserAccountsDrawerHeader(
-              accountName: Text('Fayidha Sulthana N K'),
-              accountEmail: Text('fayidha@gmail.com'),
+              accountName: Text(_userName),
+              accountEmail: Text(_userEmail),
               currentAccountPicture: CircleAvatar(
                 backgroundImage: AssetImage('asset/music.jpg'),
               ),
@@ -54,14 +80,31 @@ class HomePage extends StatelessWidget {
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
-              leading: Icon(Icons.logout, color: Color(0xFF380230)),
-              title: Text('Logout'),
-              onTap: () => Navigator.pop(context),
+              leading: const Icon(Icons.logout, color: Colors.black),
+              title: const Text("Log Out"),
+              onTap: ()  async {
+                try {
+                  await FirebaseAuth.instance.signOut(); // Logs out from Firebase
+                  await Session.clearSession(); // Clears SharedPreferences session
+
+                  // Navigate to login screen and remove all previous screens
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginForm()),
+                        (route) => false,
+                  );
+                } catch (e) {
+                  print("Logout error: $e");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Logout failed! Please try again.")),
+                  );
+                }
+              }, // Call logout function
             ),
           ],
         ),
       ),
-      
+
       body: SingleChildScrollView(
         child: Column(
           children: [
