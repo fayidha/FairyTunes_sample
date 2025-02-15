@@ -3,7 +3,6 @@ import 'package:dupepro/SuccessScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:dupepro/model/teacher_model.dart';
 import 'package:dupepro/controller/teacher_controller.dart';
 
 class TeacherAdd extends StatefulWidget {
@@ -21,6 +20,7 @@ class _TeacherAddState extends State<TeacherAdd> {
   String _email = "";
   String _phone = "";
   String _category = "";
+  String _qualification = "";
   String _experience = "";
   String _address = "";
   bool _isLoading = false; // Add a flag for loading state
@@ -28,7 +28,8 @@ class _TeacherAddState extends State<TeacherAdd> {
   final TeacherController _teacherController = TeacherController();
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = pickedFile;
@@ -44,31 +45,44 @@ class _TeacherAddState extends State<TeacherAdd> {
 
       String? imageUrl = await _uploadImage();
 
-      Teacher teacher = Teacher(
+      String? result = await _teacherController.registerTeacher(
         name: _teacherName,
-        email: _email,
         phone: _phone,
+        email: _email,
         category: _category,
+        qualification:_qualification,
         experience: _experience,
         address: _address,
         imageUrl: imageUrl,
       );
 
-      await _teacherController.addTeacher(teacher);
+      if (result != null) {
+        setState(() {
+          _isLoading = false; // Set loading to false after saving
+        });
 
-      setState(() {
-        _isLoading = false; // Set loading to false after saving
-      });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result)),
+        );
+      } else {
+        setState(() {
+          _isLoading = false; // Set loading to false after saving
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Teacher registered successfully!")),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Teacher registered successfully!")),
+        );
 
-      _formKey.currentState!.reset();
-      setState(() {
-        _image = null;  // Reset the image after successful save
-      });
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SuccessScreen(),));
+        _formKey.currentState!.reset();
+        setState(() {
+          _image = null; // Reset the image after successful save
+        });
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SuccessScreen()),
+        );
+      }
     }
   }
 
@@ -93,7 +107,8 @@ class _TeacherAddState extends State<TeacherAdd> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Teacher Registration", style: TextStyle(color: Colors.white)),
+        title: const Text("Teacher Registration",
+            style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF380230),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -108,9 +123,11 @@ class _TeacherAddState extends State<TeacherAdd> {
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.grey[200],
-                  backgroundImage: _image != null ? FileImage(File(_image!.path)) : null,
+                  backgroundImage:
+                      _image != null ? FileImage(File(_image!.path)) : null,
                   child: _image == null
-                      ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
+                      ? const Icon(Icons.camera_alt,
+                          size: 40, color: Colors.grey)
                       : null,
                 ),
               ),
@@ -139,6 +156,12 @@ class _TeacherAddState extends State<TeacherAdd> {
                 });
               }),
               const SizedBox(height: 10),
+              _buildTextField("Qualification", (value) {
+                setState(() {
+                  _qualification = value;
+                });
+              }),
+              const SizedBox(height: 10),
               _buildTextField("Experience", (value) {
                 setState(() {
                   _experience = value;
@@ -161,9 +184,9 @@ class _TeacherAddState extends State<TeacherAdd> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                    "Save",
-                    style: TextStyle(color: Colors.white),
-                  ),
+                          "Save",
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ),
             ],
@@ -173,7 +196,8 @@ class _TeacherAddState extends State<TeacherAdd> {
     );
   }
 
-  Widget _buildTextField(String label, Function(String) onChanged, {TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildTextField(String label, Function(String) onChanged,
+      {TextInputType keyboardType = TextInputType.text}) {
     return TextFormField(
       decoration: InputDecoration(labelText: label),
       keyboardType: keyboardType,

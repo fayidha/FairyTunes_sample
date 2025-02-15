@@ -2,9 +2,9 @@
 import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
 import 'package:dupepro/product.dart';
-import 'package:dupepro/teachers.dart';
 import 'package:dupepro/troups.dart';
 import 'package:dupepro/view/login.dart';
+import 'package:dupepro/view/teachers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';

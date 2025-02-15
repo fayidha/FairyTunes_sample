@@ -15,16 +15,16 @@ class CompanyAdd extends StatefulWidget {
 class _CompanyAddState extends State<CompanyAdd> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
-  XFile? _image;  // Changed to nullable type
+  XFile? _image; // Changed to nullable type
   late String _companyName;
   late String _email;
   late String _phone;
   late String _address;
-  late String _productCategory; // Text field for category
+  late String _productCategory;
   final SellerController _controller = SellerController();
   bool _isLoading = false;
 
-
+  // Method to pick an image from the gallery
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -34,11 +34,13 @@ class _CompanyAddState extends State<CompanyAdd> {
     }
   }
 
+  // Method to save seller data
   void _saveSeller() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true); // Show loading indicator
 
       Seller seller = Seller(
+        uid: "", // Add the UID here if necessary
         companyName: _companyName,
         email: _email,
         phone: _phone,
@@ -47,17 +49,23 @@ class _CompanyAddState extends State<CompanyAdd> {
         profileImage: _image?.path,  // Safe null check for profileImage
       );
 
-      await _controller.addSeller(seller);
+      try {
+        await _controller.addSeller(seller); // Add the seller using the controller
 
-      setState(() => _isLoading = false); // Hide loading indicator
-      // Navigate to the SuccessScreen and show a SnackBar
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => SuccessScreen()),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Seller Data Saved")),
-      );
+        setState(() => _isLoading = false); // Hide loading indicator
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SuccessScreen()),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Seller Data Saved")),
+        );
+      } catch (e) {
+        setState(() => _isLoading = false); // Hide loading indicator
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
     }
   }
 
@@ -91,60 +99,51 @@ class _CompanyAddState extends State<CompanyAdd> {
 
               // Company Name Input
               _buildTextField("Company Name", (value) {
-                setState(() {
-                  _companyName = value;
-                });
+                _companyName = value;
               }),
 
               const SizedBox(height: 10),
 
               // Email Input
               _buildTextField("Email", (value) {
-                setState(() {
-                  _email = value;
-                });
+                _email = value;
               }, keyboardType: TextInputType.emailAddress),
 
               const SizedBox(height: 10),
 
               // Phone Number Input
               _buildTextField("Phone Number", (value) {
-                setState(() {
-                  _phone = value;
-                });
+                _phone = value;
               }, keyboardType: TextInputType.phone),
 
               const SizedBox(height: 10),
 
               // Company Address Input
               _buildTextField("Company Address", (value) {
-                setState(() {
-                  _address = value;
-                });
+                _address = value;
               }),
 
               const SizedBox(height: 10),
 
               // Product Category Input
               _buildTextField("Product Category", (value) {
-                setState(() {
-                  _productCategory = value;
-                });
+                _productCategory = value;
               }),
 
               const SizedBox(height: 20),
 
               // Save Button
-          Center(
-            child: _isLoading
-                ? const CircularProgressIndicator() // Show spinner when loading
-                : ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF380230),
-                  foregroundColor: Colors.white),
-              onPressed: _saveSeller,
-              child: const Text("Save"),
-            ),
+              Center(
+                child: _isLoading
+                    ? const CircularProgressIndicator() // Show spinner when loading
+                    : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF380230),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: _saveSeller,
+                  child: const Text("Save"),
+                ),
               ),
             ],
           ),

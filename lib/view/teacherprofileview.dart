@@ -6,7 +6,8 @@ class TeacherProfilePage extends StatelessWidget {
   final String address;
   final String qualification;
   final String category;
-  final String email;  // Added email property
+  final String email;
+  final String experience;
 
   const TeacherProfilePage({
     super.key,
@@ -15,7 +16,8 @@ class TeacherProfilePage extends StatelessWidget {
     required this.address,
     required this.qualification,
     required this.category,
-    required this.email,  // Include email in the constructor
+    required this.email,
+    required this.experience,
   });
 
   @override
@@ -23,49 +25,60 @@ class TeacherProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF380230),
-        title: Text(name, style: const TextStyle(color: Colors.white)),
+        title: const Text('Profile', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Center(
-        child: Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          margin: const EdgeInsets.all(16),
-          child: Padding(
-            padding: const EdgeInsets.all(20) ,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                const Icon(Icons.person, size: 80, color: Colors.blueGrey),
-                const SizedBox(height: 16),
-                Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                _buildInfoRow(Icons.phone, 'Phone:', phone),
-                _buildInfoRow(Icons.location_on, 'Address:', address),
-                _buildInfoRow(Icons.school, 'Qualification:', qualification),
-                _buildInfoRow(Icons.category, 'Category:', category),
-                _buildInfoRow(Icons.email, 'Email:', email),  // Added email row
+                const CircleAvatar(radius: 40, backgroundColor: Colors.blueGrey, child: Icon(Icons.person, size: 50, color: Colors.white)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text('$qualification • $category', style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                      Text('Experience: $experience', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                      Text('Email: $email', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                      Text('Phone: $phone', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                      Text('Address: $address', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
+            const SizedBox(height: 20),
+            const Text('Music Notes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            ...List.generate(8, (index) => Card(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                title: Text('Note ${index + 1}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                subtitle: const Text('This is a sample note description.'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_red_eye, color: Colors.blueGrey),
+                      onPressed: () {},
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.download, color: Colors.blueGrey),
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+              ),
+            )),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.blueGrey, size: 20),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(width: 4),
-          Text(value, style: const TextStyle(fontSize: 16)),
-        ],
       ),
     );
   }

@@ -1,48 +1,47 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:dupepro/model/seller_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
+import 'package:dupepro/model/seller_model.dart';
 
 class SellerController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  Future<void> addSeller(Seller seller) async {
+  // Generate a unique seller ID
+  String _generateSellerId() {
+    return 'SELLER-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  // Add a new seller
+  Future<String?> addSeller(Seller seller) async {
     try {
+      User? user = _auth.currentUser;
+      if (user == null) {
+        return 'User not logged in.';
+      }
+
+      String sellerId = _generateSellerId();
       String? imageUrl;
+
       if (seller.profileImage != null && seller.profileImage!.isNotEmpty) {
         File imageFile = File(seller.profileImage!);
-        String fileName = 'sellers/${DateTime.now().millisecondsSinceEpoch}.jpg';
+        String fileName = 'sellers/$sellerId.jpg';
         UploadTask uploadTask = _storage.ref(fileName).putFile(imageFile);
         TaskSnapshot snapshot = await uploadTask;
         imageUrl = await snapshot.ref.getDownloadURL();
       }
 
       final newSeller = seller.toMap();
-      if (imageUrl != null) {
-        newSeller['profileImage'] = imageUrl;
-      }
+      newSeller['uid'] = user.uid;
+      newSeller['sellerId'] = sellerId;
+      if (imageUrl != null) newSeller['profileImage'] = imageUrl;
 
-      await _firestore.collection('sellers').add(newSeller);
+      await _firestore.collection('sellers').doc(sellerId).set(newSeller);
+      return null;
     } catch (e) {
-      throw Exception('Failed to add seller: $e');
+      return 'Failed to add seller: $e';
     }
-  }
-
-  Future<List<Seller>> getSellers() async {
-    try {
-      QuerySnapshot snapshot = await _firestore.collection('sellers').get();
-      return snapshot.docs.map((doc) => Seller.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
-    } catch (e) {
-      throw Exception('Failed to fetch sellers: $e');
-    }
-  }
-
-  Future<void> deleteSeller(String id) async {
-    await _firestore.collection('sellers').doc(id).delete();
-  }
-
-  Future<void> updateSeller(String id, Seller seller) async {
-    await _firestore.collection('sellers').doc(id).update(seller.toMap());
   }
 }

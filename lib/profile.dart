@@ -74,12 +74,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        backgroundColor: Color(0xFF380230), // Dynamically set app bar color
+        backgroundColor: Color(0xFF380230),
         title: const Text(
           "Profile",
           style: TextStyle(color: Colors.white),
         ),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Center(
         child: Padding(

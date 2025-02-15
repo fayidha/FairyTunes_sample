@@ -1,7 +1,6 @@
-
 // model/seller_model.dart
 class Seller {
-  String id;
+  String uid;
   String companyName;
   String email;
   String phone;
@@ -10,7 +9,7 @@ class Seller {
   String? profileImage;
 
   Seller({
-    this.id = '',
+    required this.uid,
     required this.companyName,
     required this.email,
     required this.phone,
@@ -21,6 +20,7 @@ class Seller {
 
   Map<String, dynamic> toMap() {
     return {
+      'uid': uid,
       'companyName': companyName,
       'email': email,
       'phone': phone,
@@ -30,9 +30,9 @@ class Seller {
     };
   }
 
-  factory Seller.fromMap(String id, Map<String, dynamic> map) {
+  factory Seller.fromMap(Map<String, dynamic> map) {
     return Seller(
-      id: id,
+      uid: map['uid'] ?? '',
       companyName: map['companyName'] ?? '',
       email: map['email'] ?? '',
       phone: map['phone'] ?? '',
