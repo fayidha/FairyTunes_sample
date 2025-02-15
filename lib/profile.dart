@@ -1,14 +1,11 @@
-import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dupepro/creategrp.dart';
-import 'package:dupepro/editprofile.dart';
-import 'package:dupepro/model/user_model.dart';
-import 'package:dupepro/view/Company_add.dart';
-
-import 'package:dupepro/view/Teacher_profile_Add.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:dupepro/editprofile.dart';
+import 'package:dupepro/view/Company_add.dart';
+import 'package:dupepro/view/Teacher_profile_Add.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -18,19 +15,8 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String name = "";
   String email = "";
-  String profileImage = 'asset/210379377.png';  // Default image
-  String userType = "User"; // Default user type
-
+  String profileImage = 'asset/210379377.png';
   final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        profileImage = pickedFile.path;
-      });
-    }
-  }
 
   @override
   void initState() {
@@ -41,192 +27,108 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadUserProfile() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      DocumentSnapshot userDoc =
-      await FirebaseFirestore.instance.collection("users").doc(user.uid).get();
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection("users").doc(user.uid).get();
       if (userDoc.exists) {
-        UserModel userModel = UserModel.fromMap(userDoc.data() as Map<String, dynamic>);
         setState(() {
-          name = userModel.name;
-          email = userModel.email;
+          name = userDoc['name'];
+          email = userDoc['email'];
+          profileImage = userDoc['profileImage'] ?? profileImage;
         });
       }
     }
   }
 
-  void _setUserType(String type) {
-    setState(() {
-      userType = type;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    Widget pageToNavigate;
-
-    // Change appBar color based on userType
-    if (userType == "Seller") {
-      pageToNavigate = Placeholder(); // Placeholder for Seller page, replace it later.
-    } else if (userType == "Teacher") {
-      pageToNavigate = Placeholder(); // Placeholder for Teacher page, replace it later.
-    } else {
-      pageToNavigate = Placeholder(); // Placeholder for User page, replace it later.
-    }
-
     return Scaffold(
       appBar: AppBar(
+        title: Text("Profile", style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF380230),
-        title: const Text(
-          "Profile",
-          style: TextStyle(color: Colors.white),
-        ),
         iconTheme: IconThemeData(color: Colors.white),
+        leading: BackButton(color: Colors.white),
       ),
-      body: Center(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            GestureDetector(
+              onTap: () async {
+                final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+                if (pickedFile != null) setState(() => profileImage = pickedFile.path);
+              },
+              child: CircleAvatar(radius: 60, backgroundImage: FileImage(File(profileImage)),),
+            ),
+            SizedBox(height: 20),
+            Text(name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(email, style: TextStyle(fontSize: 16, color: Colors.grey)),
+            SizedBox(height: 10),
+            ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Editprofile())), child: Text('Edit Profile')),
+            SizedBox(height: 20),
+            _buildSwitchMyRole(context),
+            SizedBox(height: 20),
+            _buildCarouselSlider(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchMyRole(BuildContext context) {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            ListTile(
+              leading: Icon(Icons.store, color: Color(0xFF380230)),
+              title: Text('Switch to Seller'),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CompanyAdd())),
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.school, color: Color(0xFF380230)),
+              title: Text('Switch to Teacher'),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TeacherAdd())),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCarouselSlider(BuildContext context) {
+    return SizedBox(
+      height: 200,
+      child: PageView(
+        children: [
+          _carouselCard(context, "Join as an Artist", "Set your passion, join bands, and collaborate effortlessly.", Icons.music_note),
+          _carouselCard(context, "Create a Band", "Form your own music band, find artists, and share your passion.", Icons.group),
+        ],
+      ),
+    );
+  }
+
+  Widget _carouselCard(BuildContext context, String title, String subtitle, IconData icon) {
+    return GestureDetector(
+      onTap: () {},
+      child: Card(
+        elevation: 12,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        color: Color(0xFF380230),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundImage: FileImage(File(profileImage)),
-                  child: profileImage.isEmpty
-                      ? Icon(Icons.camera_alt, color: Colors.white)
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF380230),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                email,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                      context, MaterialPageRoute(builder: (context) => Editprofile()));
-                },
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Color(0xFF380230)),
-                  foregroundColor: MaterialStateProperty.all(Colors.white),
-                ),
-                child: const Text('Edit Profile'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => CreateGroupPage()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF380230),
-                  foregroundColor: Colors.white,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.add, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text('Create a Group Now'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        "Switch my Role",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF380230),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ToggleButtons(
-                            borderColor: Color(0xFF380230),
-                            selectedBorderColor: Color(0xFF380230),
-                            fillColor: Color(0xFF380230),
-                            selectedColor: Colors.white,
-                            color: Color(0xFF380230),
-                            borderRadius: BorderRadius.circular(10),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                child: Text("User"),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                child: Text("Seller"),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                child: Text("Teacher"),
-                              ),
-                            ],
-                            isSelected: [
-                              userType == "User",
-                              userType == "Seller",
-                              userType == "Teacher"
-                            ],
-                            onPressed: (int index) {
-                              if (index == 0) {
-                                _setUserType("User");
-                              } else if (index == 1) {
-                                _setUserType("Seller");
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => CompanyAdd()),
-                                );
-                              } else {
-                                _setUserType("Teacher");
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => TeacherAdd()),
-                                );
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        "Current Role: $userType",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              Icon(icon, size: 40, color: Colors.white),
+              SizedBox(height: 10),
+              Text(title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+              SizedBox(height: 8),
+              Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.white70)),
             ],
           ),
         ),

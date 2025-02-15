@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class CreateGroupPage extends StatefulWidget {
+class CreateTroupPage extends StatefulWidget {
   @override
-  _CreateGroupPageState createState() => _CreateGroupPageState();
+  _CreateTroupPageState createState() => _CreateTroupPageState();
 }
 
-class _CreateGroupPageState extends State<CreateGroupPage> {
+class _CreateTroupPageState extends State<CreateTroupPage> {
   final _groupNameController = TextEditingController();
   final _groupDescController = TextEditingController();
   final List<Map<String, String>> _members = [];

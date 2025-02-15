@@ -3,6 +3,7 @@ import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
 import 'package:dupepro/product.dart';
 import 'package:dupepro/troups.dart';
+import 'package:dupepro/view/Vendor_add_product.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:dupepro/view/teachers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -426,7 +427,12 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 30),
             const Divider(thickness: 1, color: Colors.grey),
             const SizedBox(height: 20),
-            ],
+
+            const SizedBox(height: 30),
+          ElevatedButton(onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => AddProduct(),));
+          }, child: Text('Seller_Add product!') ),
+          ],
         )
       )
     );

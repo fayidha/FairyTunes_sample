@@ -1,4 +1,3 @@
-
 import 'package:dupepro/bookDetail.dart';
 import 'package:flutter/material.dart';
 
@@ -24,7 +23,7 @@ class TroupePage extends StatelessWidget {
           itemBuilder: (context, index) {
             return GestureDetector(
               onTap: () {
-               Navigator.push(context, MaterialPageRoute(builder: (context) => TroupDetail(index: index),));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => TroupDetail(index: index),));
               },
               child: Card(
                 shape: RoundedRectangleBorder(
