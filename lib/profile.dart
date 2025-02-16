@@ -1,3 +1,5 @@
+import 'package:dupepro/Artist_tabbar.dart';
+import 'package:dupepro/view/creategrp.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -104,7 +106,7 @@ class _ProfilePageState extends State<ProfilePage> {
       height: 200,
       child: PageView(
         children: [
-          _carouselCard(context, "Join as an Artist", "Set your passion, join bands, and collaborate effortlessly.", Icons.music_note),
+          _carouselCard(context, "Create a Artist Profile", "Set your passion, join bands, and collaborate effortlessly.", Icons.music_note),
           _carouselCard(context, "Create a Band", "Form your own music band, find artists, and share your passion.", Icons.group),
         ],
       ),
@@ -113,7 +115,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _carouselCard(BuildContext context, String title, String subtitle, IconData icon) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        if (title == "Create a Artist Profile") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ArtistTab()),
+          );
+        }
+        else if (title == "Create a Band") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CreateGroupPage()),
+          );
+        }
+      },
       child: Card(
         elevation: 12,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

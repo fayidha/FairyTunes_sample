@@ -1,29 +1,32 @@
-class Troup {
-  String id;
-  String name;
-  String description;
-  List<Map<String, String>> members;
-  Map<String, String> admin;
 
-  Troup({required this.id, required this.name, required this.description, required this.members, required this.admin});
+// troupe_model.dart
+class Troupe {
+  final String id;
+  final String name;
+  final String location;
+  final String description;
+  final List<String> images;
+  final List<Map<String, String>> artists;
+  final String creator;
+
+  Troupe({
+    required this.id,
+    required this.name,
+    required this.location,
+    required this.description,
+    required this.images,
+    required this.artists,
+    required this.creator,
+  });
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'name': name,
+      'location': location,
       'description': description,
-      'members': members,
-      'admin': admin,
+      'images': images,
+      'artists': artists,
+      'creator': creator,
     };
-  }
-
-  factory Troup.fromMap(Map<String, dynamic> map) {
-    return Troup(
-      id: map['id'] ?? '',
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      members: List<Map<String, String>>.from(map['members']),
-      admin: Map<String, String>.from(map['admin']),
-    );
   }
 }

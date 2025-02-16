@@ -1,153 +1,254 @@
+import 'package:dupepro/view/BandSuccess_message.dart';
 import 'package:flutter/material.dart';
+import 'package:dupepro/controller/artist_controller.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dupepro/model/artist_model.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
-class CreateTroupPage extends StatefulWidget {
+class CreateGroupPage extends StatefulWidget {
   @override
-  _CreateTroupPageState createState() => _CreateTroupPageState();
+  _CreateGroupPageState createState() => _CreateGroupPageState();
 }
 
-class _CreateTroupPageState extends State<CreateTroupPage> {
+class _CreateGroupPageState extends State<CreateGroupPage> {
   final _groupNameController = TextEditingController();
   final _groupDescController = TextEditingController();
-  final List<Map<String, String>> _members = [];
-  Map<String, String>? _selectedUser;
-
-  final List<Map<String, String>> _registeredUsers = [
-    {"name": "meghna", "email": "meghna@example.com", "category": "Musician"},
-    {"name": "akhil", "email": "akhil@example.com", "category": "Vocalist"},
-    {"name": "freddy", "email": "freddy@example.com", "category": "Composer"},
-    {"name": "David", "email": "david@example.com", "category": "Instrumentalist"},
-    {"name": "Emma", "email": "emma@example.com", "category": "Producer"},
-  ];
-
-  final Map<String, String> _currentUser = {
-    "name": "Me (You)",
-    "email": "me@example.com",
-    "category": "Admin"
-  };
+  final List<Artist> _members = [];
+  final ArtistController _artistController = ArtistController();
+  List<XFile>? _imageFiles = [];
 
   @override
   void initState() {
     super.initState();
-    _members.add(_currentUser);
+    _loadCurrentUser();
   }
 
-  void _addMember() {
-    if (_selectedUser != null && !_members.contains(_selectedUser)) {
-      setState(() => _members.add(_selectedUser!));
-    }
+  void _loadCurrentUser() async {
+    Artist currentUser = Artist(
+      id: 'currentUserId',
+      name: 'Admin (You)',
+      artistType: 'Admin',
+      bio: '',
+      joinBands: true,
+    );
+    setState(() => _members.add(currentUser));
+  }
+
+  Future<List<Artist>> _fetchArtists() async {
+    QuerySnapshot snapshot = await _artistController.artistsCollection.get();
+    return snapshot.docs.map((doc) => Artist(
+      id: doc.id,
+      name: doc['name'],
+      artistType: doc['artistType'],
+      bio: doc['bio'],
+      joinBands: doc['joinBands'],
+    )).toList();
+  }
+
+  void _addOrRemoveMember(Artist artist) {
+    setState(() {
+      if (_members.any((member) => member.id == artist.id)) {
+        _members.removeWhere((member) => member.id == artist.id);
+      } else {
+        _members.add(artist);
+      }
+    });
   }
 
   void _removeMember(int index) {
-    if (_members[index] != _currentUser) {
-      setState(() => _members.removeAt(index));
+    setState(() => _members.removeAt(index));
+  }
+
+  Future<void> _pickImages() async {
+    final ImagePicker _picker = ImagePicker();
+    final List<XFile>? images = await _picker.pickMultiImage();
+    if (images != null) {
+      setState(() => _imageFiles = images);
     }
   }
 
-  void _createGroup() {
-    if (_groupNameController.text.isNotEmpty && _members.length > 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Group "${_groupNameController.text}" created successfully!')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Enter a group name and add at least one member.')),
-      );
-    }
+  Widget _buildArtistDropdown() {
+    return FutureBuilder<List<Artist>>(
+      future: _fetchArtists(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return CircularProgressIndicator();
+        return Column(
+          children: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF380230),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => _showArtistSelectionDialog(snapshot.data!),
+              child: Text('Add Artists'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showArtistSelectionDialog(List<Artist> artists) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Select Artists"),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: artists.map((artist) {
+                bool isSelected = _members.any((member) => member.id == artist.id);
+                return GestureDetector(
+                  onTap: () => setState(() {
+                    _addOrRemoveMember(artist);
+                    Navigator.pop(context);
+                    _showArtistSelectionDialog(artists);
+                  }),
+                  child: Card(
+                    child: ListTile(
+                      title: Text(artist.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(artist.artistType),
+                          Text(artist.bio),
+                          if (artist.joinBands)
+                            Text("Available to join bands", style: TextStyle(color: Colors.green)),
+                        ],
+                      ),
+                      trailing: Icon(
+                        isSelected ? Icons.check_circle : Icons.add_circle,
+                        color: isSelected ? Colors.green : Colors.grey,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [TextButton(child: Text('OK'), onPressed: () => Navigator.pop(context))],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create group", style: TextStyle(color: Colors.white)),
+        title: Text("Create Group", style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF380230),
         iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildAvatar(),
-            _buildTextField(_groupNameController, 'Group Name'),
-            _buildTextField(_groupDescController, 'Group Description'),
-            _buildUserDropdown(),
-            Expanded(child: _buildMemberList()),
-            _buildCreateButton(),
-          ],
+      resizeToAvoidBottomInset: true, // Ensures the UI resizes when the keyboard opens
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildAvatar(),
+              SizedBox(height: 16),
+              _buildTextField(_groupNameController, 'Group Name'),
+              SizedBox(height: 16),
+              _buildTextField(_groupDescController, 'Group Description'),
+              SizedBox(height: 16),
+              _buildArtistDropdown(),
+              SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4, // Restrict height to avoid overflow
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _members.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      child: ListTile(
+                        title: Text(_members[index].name),
+                        subtitle: Text(_members[index].artistType),
+                        trailing: _members[index].name == 'Admin (You)'
+                            ? null
+                            : IconButton(
+                          icon: Icon(Icons.remove_circle, color: Colors.red),
+                          onPressed: () => _removeMember(index),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 10),
+              _buildCreateButton(),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildAvatar() {
-    return Center(
-      child: CircleAvatar(
-        radius: 40,
-        backgroundColor: Colors.grey[300],
-        child: Icon(Icons.camera_alt, size: 40, color: Colors.grey[700]),
-      ),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserDropdown() {
-    return Row(
+    return Stack(
       children: [
-        Expanded(
-          child: DropdownButtonFormField<Map<String, String>>(
-            value: _selectedUser,
-            hint: Text("Select User"),
-            items: _registeredUsers.map((user) {
-              return DropdownMenuItem(value: user, child: Text("${user["name"]} - ${user["category"]}"));
-            }).toList(),
-            onChanged: (value) => setState(() => _selectedUser = value),
+        _imageFiles!.isEmpty
+            ? CircleAvatar(
+          radius: 60,
+          backgroundColor: Colors.grey[300],
+          child: Icon(Icons.group, size: 60, color: Colors.white),
+        )
+            : Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _imageFiles!.map((file) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                File(file.path),
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+              ),
+            );
+          }).toList(),
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: InkWell(
+            onTap: _pickImages,
+            child: CircleAvatar(
+              backgroundColor: Color(0xFF380230),
+              radius: 24,
+              child: Icon(Icons.add_a_photo, color: Colors.white),
+            ),
           ),
         ),
-        IconButton(icon: Icon(Icons.add_circle, color: Colors.green), onPressed: _addMember),
       ],
     );
   }
 
-  Widget _buildMemberList() {
-    return ListView.builder(
-      itemCount: _members.length,
-      itemBuilder: (context, index) {
-        final member = _members[index];
-        return Card(
-          margin: EdgeInsets.symmetric(vertical: 5),
-          child: ListTile(
-            title: Text(member["name"]!, style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(member["email"]!),
-            trailing: member == _currentUser
-                ? Icon(Icons.star, color: Colors.blue)
-                : IconButton(icon: Icon(Icons.remove_circle, color: Colors.red), onPressed: () => _removeMember(index)),
-          ),
-        );
-      },
-    );
-  }
+  Widget _buildTextField(TextEditingController controller, String label) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: TextField(
+      controller: controller,
+      decoration: InputDecoration(labelText: label, border: OutlineInputBorder()),
+    ),
+  );
 
   Widget _buildCreateButton() {
-    return ElevatedButton.icon(
-      onPressed: _createGroup,
-      icon: Icon(Icons.group_add),
-      label: Text('Create Group'),
+    return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: Color(0xFF380230),
         foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
       ),
+      onPressed: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => BandSuccess(),));
+      },
+      child: Text('Create Group', style: TextStyle(fontSize: 16)),
     );
   }
 }
