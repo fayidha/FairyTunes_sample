@@ -1,6 +1,5 @@
-
-import 'package:dupepro/bottomBar.dart';
 import 'package:dupepro/controller/auth_controller.dart';
+import 'package:dupepro/view/Artist_profile.dart';
 import 'package:flutter/material.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -19,6 +18,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
   final AuthController _authController = AuthController();
+  String? _message;
 
   @override
   void dispose() {
@@ -37,14 +37,15 @@ class _RegisterPageState extends State<RegisterPage> {
         _passwordController.text.trim(),
       );
 
+      setState(() {
+        _message = result ?? 'Registration Successful!';
+      });
+
       if (result == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration Successful!')),
-        );
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BottomBarScreen()));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result), backgroundColor: Colors.red),
+        // Navigate to ArtistProfile page after successful registration
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ArtistProfile()),
         );
       }
     }
@@ -172,6 +173,17 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 child: const Text('Submit'),
               ),
+              if (_message != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  _message!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _message == 'Registration Successful!' ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 200),
             ],
           ),
         ),

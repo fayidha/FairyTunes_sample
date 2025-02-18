@@ -1,32 +1,40 @@
-
-// troupe_model.dart
 class Troupe {
   final String id;
-  final String name;
-  final String location;
-  final String description;
-  final List<String> images;
-  final List<Map<String, String>> artists;
-  final String creator;
+  final String uid; // ID of the user who created this troupe
+  final String name; // Name of the troupe
+  final String description; // Description of the troupe
+  final List<String> memberIds; // List of member IDs (Artist IDs)
+  final String? imageUrl; // Optional image URL for the troupe
 
   Troupe({
     required this.id,
+    required this.uid,
     required this.name,
-    required this.location,
     required this.description,
-    required this.images,
-    required this.artists,
-    required this.creator,
+    required this.memberIds,
+    this.imageUrl,
   });
 
+  // Convert a Troupe object into a map for Firestore storage
   Map<String, dynamic> toMap() {
     return {
+      'uid': uid,
       'name': name,
-      'location': location,
       'description': description,
-      'images': images,
-      'artists': artists,
-      'creator': creator,
+      'memberIds': memberIds,
+      'imageUrl': imageUrl,
     };
+  }
+
+  // Convert a Firestore document to a Troupe object
+  factory Troupe.fromMap(Map<String, dynamic> map) {
+    return Troupe(
+      id: map['id'] ?? '',
+      uid: map['uid'] ?? '',
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      memberIds: List<String>.from(map['memberIds'] ?? []),
+      imageUrl: map['imageUrl'],
+    );
   }
 }

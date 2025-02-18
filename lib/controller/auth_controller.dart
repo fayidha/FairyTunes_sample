@@ -3,7 +3,7 @@ import 'package:dupepro/model/user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class AuthController {
+  class AuthController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -88,4 +88,20 @@ class AuthController {
       return e.message;
     }
   }
-}
+
+  // Get current user's name and email
+  Future<Map<String, String?>> getCurrentUserDetails() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      return {
+        'name': user.displayName,
+        'email': user.email,
+      };
+    }
+    return {
+      'name': null,
+      'email': null,
+    };
+  }
+  }
+

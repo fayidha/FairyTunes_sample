@@ -1,5 +1,4 @@
 import 'package:dupepro/Artist_tabbar.dart';
-import 'package:dupepro/view/creategrp.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -123,10 +122,10 @@ class _ProfilePageState extends State<ProfilePage> {
           );
         }
         else if (title == "Create a Band") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => CreateGroupPage()),
-          );
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(builder: (context) => CreateGroupPage()),
+          // );
         }
       },
       child: Card(
