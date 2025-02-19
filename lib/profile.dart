@@ -1,11 +1,9 @@
 import 'package:dupepro/Artist_tabbar.dart';
-import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/view/creategrp.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:dupepro/editprofile.dart';
 import 'package:dupepro/view/Company_add.dart';
 import 'package:dupepro/view/Teacher_profile_Add.dart';
