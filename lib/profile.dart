@@ -1,4 +1,6 @@
 import 'package:dupepro/Artist_tabbar.dart';
+import 'package:dupepro/controller/session.dart';
+import 'package:dupepro/view/creategrp.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,7 +18,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String name = "";
   String email = "";
-  String profileImage = 'asset/210379377.png';
+  String profileImage = '';
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -27,13 +29,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserProfile() async {
     User? user = FirebaseAuth.instance.currentUser;
+
     if (user != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection("users").doc(user.uid).get();
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
       if (userDoc.exists) {
         setState(() {
           name = userDoc['name'];
           email = userDoc['email'];
-          profileImage = userDoc['profileImage'] ?? profileImage;
+          profileImage = userDoc['userProfile'];
         });
       }
     }
@@ -54,16 +60,27 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             GestureDetector(
               onTap: () async {
-                final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-                if (pickedFile != null) setState(() => profileImage = pickedFile.path);
+                final XFile? pickedFile =
+                    await _picker.pickImage(source: ImageSource.gallery);
+                if (pickedFile != null)
+                  setState(() => profileImage = pickedFile.path);
               },
-              child: CircleAvatar(radius: 60, backgroundImage: FileImage(File(profileImage)),),
+              child:  CircleAvatar(
+                radius: 60,
+                backgroundImage: profileImage.isNotEmpty
+                    ? NetworkImage(profileImage)
+                    : AssetImage('asset/210379377.png') as ImageProvider,
+              ),
             ),
             SizedBox(height: 20),
-            Text(name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(name,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             Text(email, style: TextStyle(fontSize: 16, color: Colors.grey)),
             SizedBox(height: 10),
-            ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => Editprofile())), child: Text('Edit Profile')),
+            ElevatedButton(
+                onPressed: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => Editprofile())),
+                child: Text('Edit Profile')),
             SizedBox(height: 20),
             _buildSwitchMyRole(context),
             SizedBox(height: 20),
@@ -86,13 +103,15 @@ class _ProfilePageState extends State<ProfilePage> {
             ListTile(
               leading: Icon(Icons.store, color: Color(0xFF380230)),
               title: Text('Switch to Seller'),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CompanyAdd())),
+              onTap: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => CompanyAdd())),
             ),
             Divider(),
             ListTile(
               leading: Icon(Icons.school, color: Color(0xFF380230)),
               title: Text('Switch to Teacher'),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TeacherAdd())),
+              onTap: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => TeacherAdd())),
             ),
           ],
         ),
@@ -105,14 +124,23 @@ class _ProfilePageState extends State<ProfilePage> {
       height: 200,
       child: PageView(
         children: [
-          _carouselCard(context, "Create a Artist Profile", "Set your passion, join bands, and collaborate effortlessly.", Icons.music_note),
-          _carouselCard(context, "Create a Band", "Form your own music band, find artists, and share your passion.", Icons.group),
+          _carouselCard(
+              context,
+              "Create a Artist Profile",
+              "Set your passion, join bands, and collaborate effortlessly.",
+              Icons.music_note),
+          _carouselCard(
+              context,
+              "Create a Band",
+              "Form your own music band, find artists, and share your passion.",
+              Icons.group),
         ],
       ),
     );
   }
 
-  Widget _carouselCard(BuildContext context, String title, String subtitle, IconData icon) {
+  Widget _carouselCard(
+      BuildContext context, String title, String subtitle, IconData icon) {
     return GestureDetector(
       onTap: () {
         if (title == "Create a Artist Profile") {
@@ -120,8 +148,7 @@ class _ProfilePageState extends State<ProfilePage> {
             context,
             MaterialPageRoute(builder: (context) => ArtistTab()),
           );
-        }
-        else if (title == "Create a Band") {
+        } else if (title == "Create a Band") {
           // Navigator.push(
           //   context,
           //   MaterialPageRoute(builder: (context) => CreateGroupPage()),
@@ -140,9 +167,15 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Icon(icon, size: 40, color: Colors.white),
               SizedBox(height: 10),
-              Text(title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text(title,
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white)),
               SizedBox(height: 8),
-              Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.white70)),
+              Text(subtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.white70)),
             ],
           ),
         ),

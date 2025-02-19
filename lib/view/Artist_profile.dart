@@ -1,18 +1,20 @@
-import 'package:dupepro/controller/session.dart';
-import 'package:dupepro/view/login.dart';
 import 'package:flutter/material.dart';
 import 'package:dupepro/controller/artist_controller.dart';
 import 'package:dupepro/model/artist_model.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ArtistProfile extends StatefulWidget {
+  final String uid;
+
+  const ArtistProfile({Key? key, required this.uid}) : super(key: key);
+
   @override
   _ArtistProfileState createState() => _ArtistProfileState();
 }
 
 class _ArtistProfileState extends State<ArtistProfile> {
   final _formKey = GlobalKey<FormState>();
+
   String? artistType;
   String? bio;
   bool joinBands = false;
@@ -20,63 +22,86 @@ class _ArtistProfileState extends State<ArtistProfile> {
   bool isSubmitting = false;
   String? userName;
   String? userEmail;
+  String? artistId;
 
   final ArtistController _controller = ArtistController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _bioController = TextEditingController();
+  final TextEditingController _otherArtistTypeController = TextEditingController();
 
-  // Fetch user details from Session
-  Future<void> _fetchUserDetails() async {
-    try {
-      Map<String, String?> sessionData = await Session.getSession();
-      setState(() {
-        userEmail = sessionData['email']; // Get email from session
-        String? userUUID = sessionData['uid']; // Get UUID from session
-        userName = sessionData['name']; // Assuming name is stored in session
-        if (userUUID != null) {
-          _fetchUserFromFirestore(userUUID); // Fetch user details from Firestore using UUID
-        }
-      });
-    } catch (e) {
-      print("Error fetching user details from session: $e");
-    }
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserDetails();
+    _fetchArtistDetails();
   }
 
-  // Fetch user details from Firestore using the user's UUID
-  Future<void> _fetchUserFromFirestore(String uuid) async {
+  // Fetch artist details directly using UID
+  Future<void> _fetchArtistDetails() async {
     try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('uid', isEqualTo: uuid)
-          .limit(1)
+      DocumentSnapshot artistDoc = await FirebaseFirestore.instance
+          .collection('artists')
+          .doc(widget.uid) // Fetch directly using user ID
           .get();
 
-      if (snapshot.docs.isNotEmpty) {
-        var userData = snapshot.docs.first.data() as Map<String, dynamic>;
+      if (artistDoc.exists && artistDoc.data() != null) {
         setState(() {
-          userName = userData['name']; // Get the name from Firestore
+          artistType = artistDoc['artistType'];
+          bio = artistDoc['bio'];
+          joinBands = artistDoc['joinBands'] ?? false;
+
+          _bioController.text = bio ?? "";
+          if (artistType == 'Other') {
+            _otherArtistTypeController.text = artistDoc['otherArtistType'] ?? "";
+          }
         });
       } else {
-        print("No user found with this UUID.");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Artist details not found!")),
+        );
       }
     } catch (e) {
-      print("Error fetching user from Firestore: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching artist details: $e")),
+      );
+    }
+  }
+  // Fetch user details from Firestore using UID
+  Future<void> _fetchUserDetails() async {
+    try {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.uid)
+          .get();
+
+      if (userDoc.exists) {
+        setState(() {
+          userName = userDoc['name'] ?? "No Name";
+          userEmail = userDoc['email'] ?? "No Email";
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("User details not found in Firestore!")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching user details: $e")),
+      );
     }
   }
 
   // Submit the profile to Firestore
   void _submitProfile() async {
     if (_formKey.currentState!.validate() && !isSubmitting) {
-      setState(() {
-        isSubmitting = true; // Disable the button while submitting
-      });
+      setState(() => isSubmitting = true);
 
-      artistType = artistType == 'Other' ? otherArtistType : artistType;
-      String artistId = FirebaseFirestore.instance.collection('artists').doc().id;
+      String finalArtistType =
+          artistType == 'Other' ? (otherArtistType ?? '') : artistType!;
 
       Artist artist = Artist(
-        uid: _auth.currentUser!.uid,
-        id: artistId,
-        artistType: artistType!,
+        uid: widget.uid,
+        id: widget.uid,
+        artistType: finalArtistType,
         bio: bio!,
         joinBands: joinBands,
       );
@@ -84,13 +109,11 @@ class _ArtistProfileState extends State<ArtistProfile> {
       await _controller.addArtist(artist);
       _showSubmissionDialog();
 
-      setState(() {
-        isSubmitting = false; // Re-enable the button after submission
-      });
+      setState(() => isSubmitting = false);
     }
   }
 
-  // Show dialog after submission
+  // Show confirmation dialog after submission
   void _showSubmissionDialog() {
     showDialog(
       context: context,
@@ -113,20 +136,6 @@ class _ArtistProfileState extends State<ArtistProfile> {
     );
   }
 
-  // Skip profile setup
-  void _skipProfile() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => LoginForm()), // Navigate back to login or any other route
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserDetails(); // Fetch user details from session when the widget is initialized
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -140,197 +149,125 @@ class _ArtistProfileState extends State<ArtistProfile> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 40),
-                  // Display the username and email inside FormFields
                   userName != null && userEmail != null
-                      ? Container(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Updated heading with customized font style and effect
-                        Text(
-                          'If you are an artist! This is the golden chance for you to join a band...',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.purple,
-                            letterSpacing: 2.0,
-                            fontStyle: FontStyle.italic,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 10.0,
-                                color: Colors.black.withOpacity(0.5),
-                                offset: Offset(2.0, 2.0),
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'If you are an artist! This is the golden chance for you to join a band...',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.purple,
+                                fontStyle: FontStyle.italic,
                               ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 30),
-                        Text(
-                          'Username:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                        TextFormField(
-                          initialValue: userName, // Set the fetched username
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-                            hintText: 'Enter your username',
-                            filled: true,
-                            fillColor: Colors.grey[200],
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your username';
-                            }
-                            return null;
-                          },
-                          onChanged: (value) => userName = value, // Update userName on change
-                        ),
-                        SizedBox(height: 20),
-                        Text(
-                          'Email:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                        TextFormField(
-                          initialValue: userEmail, // Set the fetched email
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-                            hintText: 'Enter your email',
-                            filled: true,
-                            fillColor: Colors.grey[200],
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your email';
-                            }
-                            return null;
-                          },
-                          onChanged: (value) => userEmail = value, // Update userEmail on change
-                        ),
-                      ],
-                    ),
-                  )
-                      : CircularProgressIndicator(), // Show loading indicator while fetching data
+                            ),
+                            SizedBox(height: 30),
+                            _buildTextField('Username', userName!,
+                                (value) => userName = value),
+                            SizedBox(height: 20),
+                            _buildTextField('Email', userEmail!,
+                                (value) => userEmail = value),
+                          ],
+                        )
+                      : Center(child: CircularProgressIndicator()),
                   SizedBox(height: 20),
-                  Text('What type of artist are you?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('What type of artist are you?',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   DropdownButtonFormField<String>(
-                    items: ['Singer', 'Instrumentalist', 'Composer', 'DJ', 'Other']
-                        .map((label) => DropdownMenuItem(child: Text(label), value: label))
+                    items: [
+                      'Singer',
+                      'Instrumentalist',
+                      'Composer',
+                      'DJ',
+                      'Other'
+                    ]
+                        .map((label) =>
+                            DropdownMenuItem(child: Text(label), value: label))
                         .toList(),
-                    value: artistType, // Pre-select the fetched artistType
-                    onChanged: (value) {
-                      setState(() {
-                        artistType = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select your artist type';
-                      }
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-                      hintText: 'Select your artist type',
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                    ),
+                    value: artistType,
+                    onChanged: (value) => setState(() => artistType = value),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please select your artist type'
+                        : null,
+                    decoration: _inputDecoration(),
                   ),
                   if (artistType == 'Other') ...[
                     SizedBox(height: 10),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-                        hintText: 'Please specify',
-                        filled: true,
-                        fillColor: Colors.grey[200],
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          otherArtistType = value; // Save the input from the "Other" field
-                        });
-                      },
-                    ),
+                    _buildTextField('Specify Other', '',
+                        (value) => otherArtistType = value),
                   ],
                   SizedBox(height: 20),
-                  Text('Tell us about yourself', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Tell us about yourself',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   TextFormField(
                     maxLines: 5,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-                      hintText: 'Enter your bio here...',
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your bio';
-                      }
-                      return null;
-                    },
+                    decoration: _inputDecoration(),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter your bio'
+                        : null,
                     onChanged: (value) => bio = value,
                   ),
                   SizedBox(height: 20),
-                  Text('Are you open to joining bands?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Are you open to joining bands?',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   SwitchListTile(
-                    title: Text(joinBands ? 'Yes, I want to join bands' : 'No, I don’t want to join bands'),
+                    title: Text(joinBands
+                        ? 'Yes, I want to join bands'
+                        : 'No, I don’t want to join bands'),
                     value: joinBands,
-                    onChanged: (value) {
-                      setState(() {
-                        joinBands = value;
-                      });
-                    },
+                    onChanged: (value) => setState(() => joinBands = value),
                   ),
                   SizedBox(height: 20),
                   Center(
                     child: ElevatedButton(
-                      onPressed: isSubmitting ? null : _submitProfile, // Disable if submitting
-                      child: Text('Submit', style: TextStyle(fontSize: 14, color: Colors.white)),
+                      onPressed: isSubmitting ? null : _submitProfile,
+                      child: Text('Submit',
+                          style: TextStyle(fontSize: 14, color: Colors.white)),
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                         backgroundColor: Color(0xFF380230),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
                       ),
                     ),
                   ),
-                  SizedBox(height: 80), // Added some space for the skip button
                 ],
               ),
             ),
           ),
-          Positioned(
-            bottom: 16.0,
-            right: 16.0,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Skip',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(width: 10),
-                FloatingActionButton(
-                  onPressed: _skipProfile,
-                  backgroundColor: Colors.grey,
-                  child: Icon(Icons.arrow_forward),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
+    );
+  }
+
+  // Reusable TextField Builder
+  Widget _buildTextField(
+      String label, String initialValue, Function(String) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        TextFormField(
+          initialValue: initialValue,
+          decoration: _inputDecoration(),
+          validator: (value) =>
+              value!.isEmpty ? 'Please enter your $label' : null,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  // Common Input Decoration
+  InputDecoration _inputDecoration() {
+    return InputDecoration(
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+      filled: true,
+      fillColor: Colors.grey[200],
     );
   }
 }

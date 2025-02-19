@@ -1,41 +1,41 @@
-class Artist {
-  final String id;
-  final String uid;
-  final String artistType;
-  final String bio;
-  final bool joinBands;
-  final String? imageUrl; // Optional imageUrl field
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+class Artist {
+  String uid; // User ID from Firebase Authentication
+  String id; // Unique artist ID in Firestore
+  String artistType;
+  String bio;
+  bool joinBands;
+
+  // Constructor
   Artist({
     required this.uid,
     required this.id,
     required this.artistType,
     required this.bio,
     required this.joinBands,
-    this.imageUrl,  // Add the imageUrl parameter to the constructor
   });
 
-  // Convert Artist object to Map (for saving in Firestore)
-  Map<String, dynamic> toMap() {
+  // Convert Artist object to JSON for Firestore storage
+  Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'uid': uid,
+      'id': id,
       'artistType': artistType,
       'bio': bio,
       'joinBands': joinBands,
-      'imageUrl': imageUrl,  // Include imageUrl in the map if available
+      'createdAt': Timestamp.now(),
     };
   }
 
-  // Create an Artist object from Map (for reading from Firestore)
-  factory Artist.fromMap(Map<String, dynamic> map) {
+  // Create an Artist object from a Firestore document snapshot
+  factory Artist.fromJson(Map<String, dynamic> json) {
     return Artist(
-      id: map['id'],
-      uid: map['uid'],
-      artistType: map['artistType'],
-      bio: map['bio'],
-      joinBands: map['joinBands'],
-      imageUrl: map['imageUrl'],  // Include imageUrl if it exists
+      uid: json['uid'],
+      id: json['id'],
+      artistType: json['artistType'],
+      bio: json['bio'],
+      joinBands: json['joinBands'],
     );
   }
 }

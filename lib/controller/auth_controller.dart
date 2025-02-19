@@ -16,7 +16,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
         email: email,
         password: password,
       );
-
+      String uid = userCredential.user!.uid;
       UserModel user = UserModel(
         uid: userCredential.user!.uid,
         name: name,
@@ -26,7 +26,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
       await _firestore.collection("users").doc(user.uid).set(user.toMap());
 
-      return null; // Success
+      return uid; // Success
     } on FirebaseAuthException catch (e) {
       return e.message; // Return error message
     }
@@ -102,6 +102,29 @@ import 'package:cloud_firestore/cloud_firestore.dart';
       'name': null,
       'email': null,
     };
+  }
+
+  // Register user and save details to Firestore
+  Future<String?> register(String name, String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      String uid = userCredential.user!.uid;
+
+      // Save user details to Firestore
+      await _firestore.collection('users').doc(uid).set({
+        'name': name,
+        'email': email,
+      });
+
+      return uid; // Return UID for navigation
+    } catch (e) {
+      print('Registration Error: $e');
+      return null;
+    }
   }
   }
 

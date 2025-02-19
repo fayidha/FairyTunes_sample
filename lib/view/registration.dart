@@ -18,7 +18,10 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
   final AuthController _authController = AuthController();
+
+
   String? _message;
+  String? uuid;
 
   @override
   void dispose() {
@@ -31,25 +34,28 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      String? result = await _authController.registerUser(
+      String? uid = await _authController.registerUser(
         _nameController.text.trim(),
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
 
       setState(() {
-        _message = result ?? 'Registration Successful!';
+        uuid = uid; // ✅ Now this will contain the actual UID
+        _message = uid != null ? 'Registration Successful!' : 'Registration Failed!';
       });
 
-      if (result == null) {
-        // Navigate to ArtistProfile page after successful registration
+      print('Generated UID: $uuid'); // Debugging: Print the UID
+
+      if (uuid != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => ArtistProfile()),
+          MaterialPageRoute(builder: (context) => ArtistProfile(uid: uuid!)),
         );
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

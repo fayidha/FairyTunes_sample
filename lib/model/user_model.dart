@@ -13,6 +13,7 @@ class UserModel {
       'name': name,
       'email': email,
       'password':password,
+      'userProfile':'https://firebasestorage.googleapis.com/v0/b/zootopia-ae68f.firebasestorage.app/o/images.png?alt=media&token=bd64e9a4-11fd-409f-83d3-dd2fa0f93e77'
     };
   }
 

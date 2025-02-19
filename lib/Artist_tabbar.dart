@@ -1,8 +1,30 @@
 import 'package:dupepro/Acc_rej_band.dart';
+import 'package:dupepro/controller/session.dart';
 import 'package:flutter/material.dart';
 import 'package:dupepro/view/artist_profile.dart';
 
-class ArtistTab extends StatelessWidget {
+class ArtistTab extends StatefulWidget {
+
+  @override
+  State<ArtistTab> createState() => _ArtistTabState();
+}
+
+class _ArtistTabState extends State<ArtistTab> {
+  String? uuid;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSessionData();
+  }
+
+  Future<void> _loadSessionData() async {
+    Map<String, String?> sessionData = await Session.getSession();
+    setState(() {
+      uuid = sessionData['uid'];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -25,10 +47,12 @@ class ArtistTab extends StatelessWidget {
             ],
           ),
         ),
-        body: TabBarView(
+        body: uuid == null
+            ? Center(child: CircularProgressIndicator()) // Loading state
+            : TabBarView(
           children: [
-            ArtistProfile(), // Artist Profile Page
-            BandRequestsPage(), // Booking History Page
+            ArtistProfile(uid: uuid!),
+            BandRequestsPage(),
           ],
         ),
       ),
