@@ -1,280 +1,226 @@
-// import 'package:dupepro/view/BandSuccess_message.dart';
-// import 'package:flutter/material.dart';
-// import 'package:dupepro/controller/artist_controller.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:dupepro/model/artist_model.dart';
-// import 'package:image_picker/image_picker.dart';
-// import 'dart:io';
-// import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
-//
-// class CreateGroupPage extends StatefulWidget {
-//   @override
-//   _CreateGroupPageState createState() => _CreateGroupPageState();
-// }
-//
-// class _CreateGroupPageState extends State<CreateGroupPage> {
-//   final _groupNameController = TextEditingController();
-//   final _groupDescController = TextEditingController();
-//   final List<Artist> _members = [];
-//   final ArtistController _artistController = ArtistController();
-//   List<XFile>? _imageFiles = [];
-//
-//   User? _currentUser; // To hold the current Firebase user
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadCurrentUser();
-//   }
-//
-//   // Load current user details from Firebase
-//   void _loadCurrentUser() async {
-//     User? user = FirebaseAuth.instance.currentUser;
-//     if (user != null) {
-//       setState(() {
-//         _currentUser = user;
-//         // Add the current user as the admin of the group
-//         Artist currentUser = Artist(
-//           id: 'currentUserId',
-//           uid: user.uid,  // Use the actual Firebase user UID
-//           name: 'Admin (You)',
-//           artistType: 'Admin',
-//           bio: '',
-//           joinBands: true,
-//         );
-//         _members.add(currentUser);
-//       });
-//     }
-//   }
-//
-//   // Fetch all artists from Firestore
-//   Future<List<Artist>> _fetchArtists() async {
-//     try {
-//       QuerySnapshot snapshot = await _artistController.artistsCollection.get();
-//       // Ensure we correctly map Firestore data to Artist objects, including uid
-//       return snapshot.docs.map((doc) {
-//         return Artist(
-//           id: doc.id,
-//           uid: doc['uid'],  // Fetch uid from the Firestore document
-//           name: doc['name'],
-//           artistType: doc['artistType'],
-//           bio: doc['bio'],
-//           joinBands: doc['joinBands'],
-//         );
-//       }).toList();
-//     } catch (e) {
-//       print("Error fetching artists: $e");
-//       return [];
-//     }
-//   }
-//
-//   // Add or remove member to/from the group
-//   void _addOrRemoveMember(Artist artist) {
-//     setState(() {
-//       if (_members.any((member) => member.id == artist.id)) {
-//         _members.removeWhere((member) => member.id == artist.id);
-//       } else {
-//         _members.add(artist);
-//       }
-//     });
-//   }
-//
-//   // Remove member from group by index
-//   void _removeMember(int index) {
-//     setState(() => _members.removeAt(index));
-//   }
-//
-//   // Pick multiple images for the group
-//   Future<void> _pickImages() async {
-//     final ImagePicker _picker = ImagePicker();
-//     final List<XFile>? images = await _picker.pickMultiImage();
-//     if (images != null) {
-//       setState(() => _imageFiles = images);
-//     }
-//   }
-//
-//   // Build the artist dropdown for adding artists
-//   Widget _buildArtistDropdown() {
-//     return FutureBuilder<List<Artist>>(
-//       future: _fetchArtists(),
-//       builder: (context, snapshot) {
-//         if (!snapshot.hasData) return CircularProgressIndicator();
-//         return Column(
-//           children: [
-//             ElevatedButton(
-//               style: ElevatedButton.styleFrom(
-//                 backgroundColor: Color(0xFF380230),
-//                 foregroundColor: Colors.white,
-//                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-//               ),
-//               onPressed: () => _showArtistSelectionDialog(snapshot.data!),
-//               child: Text('Add Artists'),
-//             ),
-//           ],
-//         );
-//       },
-//     );
-//   }
-//
-//   // Show the dialog to select artists
-//   void _showArtistSelectionDialog(List<Artist> artists) {
-//     showDialog(
-//       context: context,
-//       builder: (context) {
-//         return AlertDialog(
-//           title: Text("Select Artists"),
-//           content: SingleChildScrollView(
-//             child: ListBody(
-//               children: artists.map((artist) {
-//                 bool isSelected = _members.any((member) => member.id == artist.id);
-//                 return GestureDetector(
-//                   onTap: () => setState(() {
-//                     _addOrRemoveMember(artist);
-//                     Navigator.pop(context);
-//                   }),
-//                   child: Card(
-//                     child: ListTile(
-//                       title: Text(artist.name, style: TextStyle(fontWeight: FontWeight.bold)),
-//                       subtitle: Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Text(artist.artistType),
-//                           Text(artist.bio),
-//                           if (artist.joinBands)
-//                             Text("Available to join bands", style: TextStyle(color: Colors.green)),
-//                         ],
-//                       ),
-//                       trailing: Icon(
-//                         isSelected ? Icons.check_circle : Icons.add_circle,
-//                         color: isSelected ? Colors.green : Colors.grey,
-//                       ),
-//                     ),
-//                   ),
-//                 );
-//               }).toList(),
-//             ),
-//           ),
-//           actions: [TextButton(child: Text('OK'), onPressed: () => Navigator.pop(context))],
-//         );
-//       },
-//     );
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text("Create Group", style: TextStyle(color: Colors.white)),
-//         backgroundColor: Color(0xFF380230),
-//         iconTheme: IconThemeData(color: Colors.white),
-//       ),
-//       resizeToAvoidBottomInset: true, // Ensures the UI resizes when the keyboard opens
-//       body: SingleChildScrollView(
-//         child: Padding(
-//           padding: const EdgeInsets.all(16.0),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               _buildAvatar(),
-//               SizedBox(height: 16),
-//               _buildTextField(_groupNameController, 'Group Name'),
-//               SizedBox(height: 16),
-//               _buildTextField(_groupDescController, 'Group Description'),
-//               SizedBox(height: 16),
-//               _buildArtistDropdown(),
-//               SizedBox(height: 16),
-//               ConstrainedBox(
-//                 constraints: BoxConstraints(
-//                   maxHeight: MediaQuery.of(context).size.height * 0.4, // Restrict height to avoid overflow
-//                 ),
-//                 child: ListView.builder(
-//                   shrinkWrap: true,
-//                   itemCount: _members.length,
-//                   itemBuilder: (context, index) {
-//                     return Card(
-//                       child: ListTile(
-//                         title: Text(_members[index].name),
-//                         subtitle: Text(_members[index].artistType),
-//                         trailing: _members[index].name == 'Admin (You)'
-//                             ? null
-//                             : IconButton(
-//                           icon: Icon(Icons.remove_circle, color: Colors.red),
-//                           onPressed: () => _removeMember(index),
-//                         ),
-//                       ),
-//                     );
-//                   },
-//                 ),
-//               ),
-//               SizedBox(height: 10),
-//               _buildCreateButton(),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-//
-//   Widget _buildAvatar() {
-//     return Stack(
-//       children: [
-//         _imageFiles!.isEmpty
-//             ? CircleAvatar(
-//           radius: 60,
-//           backgroundColor: Colors.grey[300],
-//           child: Icon(Icons.group, size: 60, color: Colors.white),
-//         )
-//             : Wrap(
-//           spacing: 8,
-//           runSpacing: 8,
-//           children: _imageFiles!.map((file) {
-//             return ClipRRect(
-//               borderRadius: BorderRadius.circular(8),
-//               child: Image.file(
-//                 File(file.path),
-//                 width: 80,
-//                 height: 80,
-//                 fit: BoxFit.cover,
-//               ),
-//             );
-//           }).toList(),
-//         ),
-//         Positioned(
-//           bottom: 0,
-//           right: 0,
-//           child: InkWell(
-//             onTap: _pickImages,
-//             child: CircleAvatar(
-//               backgroundColor: Color(0xFF380230),
-//               radius: 24,
-//               child: Icon(Icons.add_a_photo, color: Colors.white),
-//             ),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-//
-//   Widget _buildTextField(TextEditingController controller, String label) => Padding(
-//     padding: const EdgeInsets.symmetric(vertical: 8.0),
-//     child: TextField(
-//       controller: controller,
-//       decoration: InputDecoration(labelText: label, border: OutlineInputBorder()),
-//     ),
-//   );
-//
-//   Widget _buildCreateButton() {
-//     return ElevatedButton(
-//       style: ElevatedButton.styleFrom(
-//         backgroundColor: Color(0xFF380230),
-//         foregroundColor: Colors.white,
-//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-//         padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-//       ),
-//       onPressed: () {
-//         Navigator.push(context, MaterialPageRoute(builder: (context) => BandSuccess(),));
-//       },
-//       child: Text('Create Group', style: TextStyle(fontSize: 16)),
-//     );
-//   }
-// }
+import 'package:dupepro/controller/session.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dupepro/model/artist_model.dart';
+import 'package:dupepro/controller/artist_controller.dart';
+
+class CreateGroupPage extends StatefulWidget {
+  @override
+  _CreateGroupPageState createState() => _CreateGroupPageState();
+}
+
+class _CreateGroupPageState extends State<CreateGroupPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _groupNameController = TextEditingController();
+  final TextEditingController _groupDescriptionController = TextEditingController();
+  final ArtistController _artistController = ArtistController();
+
+  List<Artist> _selectedArtists = [];
+  List<Artist> _allArtists = [];
+  bool _isLoading = true;
+  List<String> artistNames = [];
+  List<String> artistEmails = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAllArtists();
+  }
+
+  Future<void> _fetchAllArtists() async {
+    List<Artist> artists = await _artistController.getAllArtists();
+    setState(() {
+      _allArtists = artists;
+      _isLoading = false;
+    });
+  }
+
+  void _addArtistToGroup(Artist artist) {
+    if (!_selectedArtists.contains(artist)) {
+      setState(() {
+        _selectedArtists.add(artist);
+      });
+    }
+  }
+
+  void _removeArtistFromGroup(Artist artist) {
+    setState(() {
+      _selectedArtists.remove(artist);
+    });
+  }
+
+  Future<void> _createGroup() async {
+    if (_formKey.currentState!.validate()) {
+      String groupId = FirebaseFirestore.instance.collection('groups').doc().id;
+
+      await FirebaseFirestore.instance.collection('groups').doc(groupId).set({
+        'groupId': groupId,
+        'groupName': _groupNameController.text,
+        'groupDescription': _groupDescriptionController.text,
+        'members': _selectedArtists.map((artist) => artist.uid).toList(),
+        'createdAt': Timestamp.now(),
+      });
+
+      for (var artist in _selectedArtists) {
+        await FirebaseFirestore.instance.collection('requests').add({
+          'groupId': groupId,
+          'groupName': _groupNameController.text,
+          'artistUid': artist.uid,
+          'status': 'pending',
+          'sentAt': Timestamp.now(),
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Group created and requests sent!')),
+      );
+
+      _groupNameController.clear();
+      _groupDescriptionController.clear();
+      setState(() {
+        _selectedArtists.clear();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Create Group')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // Group Image Placeholder
+              CircleAvatar(
+                radius: 50,
+                backgroundImage: AssetImage('assets/default_group_image.png'),
+              ),
+              SizedBox(height: 16),
+
+              // Group Name Field
+              TextFormField(
+                controller: _groupNameController,
+                decoration: InputDecoration(labelText: 'Group Name'),
+                validator: (value) => value!.isEmpty ? 'Enter a group name' : null,
+              ),
+              SizedBox(height: 16),
+
+              // Group Description Field
+              TextFormField(
+                controller: _groupDescriptionController,
+                decoration: InputDecoration(labelText: 'Group Description'),
+                validator: (value) => value!.isEmpty ? 'Enter a group description' : null,
+              ),
+              SizedBox(height: 16),
+
+              // Add Artist Button
+              ElevatedButton(
+                onPressed: _showArtistSelectionDialog,
+                child: Text('Add Artist'),
+              ),
+              SizedBox(height: 16),
+
+              // Selected Artists List
+              Expanded(
+                child: _selectedArtists.isEmpty
+                    ? Center(child: Text('No artists added yet'))
+                    : ListView.builder(
+                  itemCount: _selectedArtists.length,
+                  itemBuilder: (context, index) {
+                    final artist = _selectedArtists[index];
+                    return Card(
+                      child: ListTile(
+                        title: Text(artistNames[index]),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                          //  Text("Artist ID: ${artist.id}"),
+                            Text("Type: ${artist.artistType}"),
+                            Text("Bio: ${artist.bio}"),
+                            Text("Email: ${artistEmails[index]}"),
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.remove_circle, color: Colors.red),
+                          onPressed: () => _removeArtistFromGroup(artist),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Create Group Button
+              ElevatedButton(
+                onPressed: _createGroup,
+                child: Text('Create Group'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  void _showArtistSelectionDialog() async {
+
+
+    // Fetch user details for all artists before showing the dialog
+    for (var artist in _allArtists) {
+      var userData = await Session.getUserDetailsByUid(artist.uid);
+      if (userData != null) {
+        artistNames.add(userData['name']);
+        artistEmails.add(userData['email']);
+      } else {
+        artistNames.add("Unknown Name");
+        artistEmails.add("N/A");
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Artists'),
+          content: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _allArtists.length,
+              itemBuilder: (context, index) {
+                final artist = _allArtists[index];
+
+                return ListTile(
+                  title: Text(artistNames[index]),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Type: ${artist.artistType}"),
+                      Text("Bio: ${artist.bio}"),
+                      Text("Email: ${artistEmails[index]}"),
+                    ],
+                  ),
+                  trailing: _selectedArtists.contains(artist)
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : null,
+                  onTap: () {
+                    _addArtistToGroup(artist);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+
+
+}

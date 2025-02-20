@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/SuccessScreen.dart';
+import 'package:dupepro/controller/teacher_controller.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:dupepro/controller/teacher_controller.dart';
 
 class TeacherAdd extends StatefulWidget {
   const TeacherAdd({super.key});
@@ -16,20 +18,67 @@ class _TeacherAddState extends State<TeacherAdd> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
   XFile? _image;
-  String _teacherName = "";
-  String _email = "";
-  String _phone = "";
-  String _category = "";
-  String _qualification = "";
-  String _experience = "";
-  String _address = "";
-  bool _isLoading = false; // Add a flag for loading state
+
+  // ✅ TextEditingControllers for all fields
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _categoryController = TextEditingController();
+  final TextEditingController _qualificationController = TextEditingController();
+  final TextEditingController _experienceController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+
+  String _profileImage = "";
+  bool _isLoading = false;
 
   final TeacherController _teacherController = TeacherController();
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  /// Fetch user details from Firebase Authentication & Firestore
+  Future<void> _fetchUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        Map<String, dynamic>? data = userDoc.data() as Map<String, dynamic>?;
+
+        print("User Data from Firestore: $data");
+
+        if (data != null) {
+          setState(() {
+            _nameController.text = data['name'] ?? "Unknown User";
+            _emailController.text = data['email'] ?? "unknown@gmail.com";
+            _profileImage = data['userProfile'] ?? "";
+          });
+
+          print("Fetched Name: ${_nameController.text}");
+          print("Fetched Email: ${_emailController.text}");
+          print("Fetched Profile Image: $_profileImage");
+        } else {
+          print("Error: No user data found in Firestore");
+        }
+      } else {
+        print("Error: No user document found in Firestore");
+      }
+    } else {
+      print("Error: No user signed in");
+    }
+  }
+
+  /// Pick an image from gallery
   Future<void> _pickImage() async {
     final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
+    await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = pickedFile;
@@ -37,69 +86,59 @@ class _TeacherAddState extends State<TeacherAdd> {
     }
   }
 
-  Future<void> _saveTeacher() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true; // Set loading to true while saving
-      });
-
-      String? imageUrl = await _uploadImage();
-
-      String? result = await _teacherController.registerTeacher(
-        name: _teacherName,
-        phone: _phone,
-        email: _email,
-        category: _category,
-        qualification:_qualification,
-        experience: _experience,
-        address: _address,
-        imageUrl: imageUrl,
-      );
-
-      if (result != null) {
-        setState(() {
-          _isLoading = false; // Set loading to false after saving
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result)),
-        );
-      } else {
-        setState(() {
-          _isLoading = false; // Set loading to false after saving
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Teacher registered successfully!")),
-        );
-
-        _formKey.currentState!.reset();
-        setState(() {
-          _image = null; // Reset the image after successful save
-        });
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => SuccessScreen()),
-        );
-      }
-    }
-  }
-
+  /// Upload image to Firebase Storage and return the URL
   Future<String?> _uploadImage() async {
     if (_image == null) return null;
 
     try {
-      String fileName = 'teachers/${DateTime.now().millisecondsSinceEpoch}.png';
+      String fileName =
+          'teachers/${FirebaseAuth.instance.currentUser!.uid}.png';
       TaskSnapshot snapshot = await FirebaseStorage.instance
           .ref()
           .child(fileName)
           .putFile(File(_image!.path));
-      String imageUrl = await snapshot.ref.getDownloadURL();
-      return imageUrl;
+      return await snapshot.ref.getDownloadURL();
     } catch (e) {
       print("Error uploading image: $e");
       return null;
+    }
+  }
+
+  /// Save teacher details to Firestore
+  Future<void> _saveTeacher() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      String? imageUrl = await _uploadImage();
+
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .update({
+        'name': _nameController.text,
+        'email': _emailController.text,
+        'userProfile': imageUrl ?? _profileImage, // Use existing image if not updated
+        'phone': _phoneController.text,
+        'category': _categoryController.text,
+        'qualification': _qualificationController.text,
+        'experience': _experienceController.text,
+        'address': _addressController.text,
+      });
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Teacher registered successfully!")),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => SuccessScreen()),
+      );
     }
   }
 
@@ -123,56 +162,31 @@ class _TeacherAddState extends State<TeacherAdd> {
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.grey[200],
-                  backgroundImage:
-                      _image != null ? FileImage(File(_image!.path)) : null,
-                  child: _image == null
+                  backgroundImage: _image != null
+                      ? FileImage(File(_image!.path))
+                      : _profileImage.isNotEmpty
+                      ? NetworkImage(_profileImage)
+                      : const AssetImage('asset/210379377.png') as ImageProvider,
+                  child: _image == null && _profileImage.isEmpty
                       ? const Icon(Icons.camera_alt,
-                          size: 40, color: Colors.grey)
+                      size: 40, color: Colors.grey)
                       : null,
                 ),
               ),
               const SizedBox(height: 20),
-              _buildTextField("Teacher Name", (value) {
-                setState(() {
-                  _teacherName = value;
-                });
-              }),
+              _buildTextField("Teacher Name", _nameController),
               const SizedBox(height: 10),
-              _buildTextField("Email", (value) {
-                setState(() {
-                  _email = value;
-                });
-              }, keyboardType: TextInputType.emailAddress),
+              _buildTextField("Email", _emailController, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 10),
-              _buildTextField("Phone Number", (value) {
-                setState(() {
-                  _phone = value;
-                });
-              }, keyboardType: TextInputType.phone),
+              _buildTextField("Phone Number", _phoneController, keyboardType: TextInputType.phone),
               const SizedBox(height: 10),
-              _buildTextField("Category", (value) {
-                setState(() {
-                  _category = value;
-                });
-              }),
+              _buildTextField("Category", _categoryController),
               const SizedBox(height: 10),
-              _buildTextField("Qualification", (value) {
-                setState(() {
-                  _qualification = value;
-                });
-              }),
+              _buildTextField("Qualification", _qualificationController),
               const SizedBox(height: 10),
-              _buildTextField("Experience", (value) {
-                setState(() {
-                  _experience = value;
-                });
-              }),
+              _buildTextField("Experience", _experienceController),
               const SizedBox(height: 10),
-              _buildTextField("Address", (value) {
-                setState(() {
-                  _address = value;
-                });
-              }),
+              _buildTextField("Address", _addressController),
               const SizedBox(height: 20),
               Center(
                 child: ElevatedButton(
@@ -184,9 +198,9 @@ class _TeacherAddState extends State<TeacherAdd> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                          "Save",
-                          style: TextStyle(color: Colors.white),
-                        ),
+                    "Save",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
             ],
@@ -196,12 +210,13 @@ class _TeacherAddState extends State<TeacherAdd> {
     );
   }
 
-  Widget _buildTextField(String label, Function(String) onChanged,
+  /// Build a text input field
+  Widget _buildTextField(String label, TextEditingController controller,
       {TextInputType keyboardType = TextInputType.text}) {
     return TextFormField(
       decoration: InputDecoration(labelText: label),
       keyboardType: keyboardType,
-      onChanged: onChanged,
+      controller: controller,
       validator: (value) {
         if (value == null || value.isEmpty) {
           return "Please enter a $label";

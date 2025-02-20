@@ -143,7 +143,7 @@ class _ArtistProfileState extends State<ArtistProfile> {
           SingleChildScrollView(
             padding: EdgeInsets.all(16.0),
             child: isFormFilled
-                ? _buildFilledFormView()
+                ? _buildProfileCard()
                 : Form(
               key: _formKey,
               child: Column(
@@ -249,9 +249,9 @@ class _ArtistProfileState extends State<ArtistProfile> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('Skip',
-                      style: TextStyle(fontSize: 16, color: Colors.purple, fontWeight: FontWeight.bold)),
+                      style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
                   SizedBox(width: 5),
-                  Icon(Icons.arrow_forward, color: Colors.purple),
+                  Icon(Icons.arrow_forward, color: Colors.grey),
                 ],
               ),
             ),
@@ -260,56 +260,91 @@ class _ArtistProfileState extends State<ArtistProfile> {
       ),
     );
   }
-
-  Widget _buildFilledFormView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 40),
-        Text(
-          'Your Artist Profile',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.purple,
-          ),
+  Widget _buildProfileCard() {
+    return Container(
+      width: 360,
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blueGrey.shade800, Colors.blueGrey.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        SizedBox(height: 20),
-        Text('Username: $userName', style: TextStyle(fontSize: 18)),
-        SizedBox(height: 10),
-        Text('Email: $userEmail', style: TextStyle(fontSize: 18)),
-        SizedBox(height: 20),
-        Text('Artist Type: $artistType', style: TextStyle(fontSize: 18)),
-        if (artistType == 'Other') ...[
-          SizedBox(height: 10),
-          Text('Other Artist Type: $otherArtistType', style: TextStyle(fontSize: 18)),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 15,
+            spreadRadius: 3,
+            offset: Offset(0, 8),
+          ),
         ],
-        SizedBox(height: 20),
-        Text('Bio: $bio', style: TextStyle(fontSize: 18)),
-        SizedBox(height: 20),
-        Text('Open to Joining Bands: ${joinBands ? 'Yes' : 'No'}', style: TextStyle(fontSize: 18)),
-        SizedBox(height: 20),
-        Center(
-          child: ElevatedButton(
-            onPressed: () {
-              setState(() {
-                isFormFilled = false; // Allow editing the form
-              });
-            },
-            child: Text('Edit',
-                style: TextStyle(fontSize: 14, color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF380230),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            "ARTIST PROFILE",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 1.5,
             ),
           ),
-        ),
-      ],
+          SizedBox(height: 10),
+          Divider(color: Colors.white30, thickness: 1),
+          SizedBox(height: 10),
+          _buildProfileDetail("Name", userName),
+          _buildProfileDetail("Email", userEmail),
+          _buildProfileDetail("Artist Type", artistType),
+          if (artistType == 'Other') _buildProfileDetail("Other", otherArtistType),
+          _buildProfileDetail("Bio", bio),
+          _buildProfileDetail("Open to Bands", joinBands ? 'Yes' : 'No'),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                isFormFilled = false;
+              });
+            },
+            child: Text('Edit Profile', style: TextStyle(fontSize: 16)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildTextField(String label, String initialValue, Function(String) onChanged) {
+  Widget _buildProfileDetail(String title, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
+          ),
+          Text(
+            value ?? "N/A",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+Widget _buildTextField(String label, String initialValue, Function(String) onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

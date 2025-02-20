@@ -6,12 +6,12 @@ class TeacherController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Generate a unique teacher ID
+  // ✅ Generate a unique Teacher ID
   String _generateTeacherId() {
     return 'TEACHER-${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  // Change the registration method to accept parameters
+  /// ✅ Register teacher and store data in Firestore
   Future<String?> registerTeacher({
     required String name,
     required String phone,
@@ -24,15 +24,15 @@ class TeacherController {
   }) async {
     try {
       User? user = _auth.currentUser;
-      if (user == null) {
-        return "User not logged in";
-      }
+      if (user == null) return "User not logged in";
 
-      String teacherId = _generateTeacherId();
+      String teacherId = _generateTeacherId(); // ✅ Unique teacher ID
+
       Teacher teacher = Teacher(
         uid: user.uid,
+        teacherId: teacherId,
         name: name,
-        email: user.email!,
+        email: email,
         phone: phone,
         category: category,
         qualification: qualification,
@@ -41,40 +41,79 @@ class TeacherController {
         imageUrl: imageUrl,
       );
 
-      await _firestore.collection('teachers').doc(teacherId).set(teacher.toMap());
-      return null; // Success
+      // Save teacher data to Firestore
+      await _firestore.collection('teachers').doc(user.uid).set(
+        teacher.toMap(),
+        SetOptions(merge: true), // Merge to avoid overwriting existing data
+      );
+
+      return null; // No error
     } catch (e) {
       print("Error registering teacher: $e");
       return "Failed to register teacher";
     }
   }
 
-
-  Future<List<Teacher>> getTeachers() async {
+  /// ✅ Fetch teacher profile by Firebase Auth UID
+  Future<Teacher?> getTeacherByUserId() async {
     try {
-      QuerySnapshot snapshot = await _firestore.collection('teachers').get();
-      return snapshot.docs
-          .map((doc) => Teacher.fromMap(doc.data() as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      print("Error fetching teachers: $e");
-      return [];
-    }
-  }
+      User? user = _auth.currentUser;
+      if (user == null) return null;
 
-  //fetch
+      DocumentSnapshot doc =
+      await _firestore.collection('teachers').doc(user.uid).get();
 
-
-  Future<Teacher?> getTeacherById(String teacherId) async {
-    try {
-      DocumentSnapshot doc = await _firestore.collection('teachers').doc(teacherId).get();
       if (doc.exists) {
         return Teacher.fromMap(doc.data() as Map<String, dynamic>);
       }
-      return null;
+      return null; // Teacher not found
     } catch (e) {
       print("Error fetching teacher: $e");
       return null;
+    }
+  }
+
+  /// ✅ Update teacher profile
+  Future<String?> updateTeacherProfile(Map<String, dynamic> teacherData) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) return "User not logged in";
+
+      await _firestore.collection('teachers').doc(user.uid).update(teacherData);
+      return null; // No error
+    } catch (e) {
+      print("Error updating teacher profile: $e");
+      return "Failed to update profile";
+    }
+  }
+
+  /// ✅ Check if the teacher profile exists
+  Future<bool> doesTeacherExist() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) return false;
+
+      DocumentSnapshot doc =
+      await _firestore.collection('teachers').doc(user.uid).get();
+
+      return doc.exists;
+    } catch (e) {
+      print("Error checking teacher existence: $e");
+      return false;
+    }
+  }
+
+  /// ✅ Delete teacher profile
+  Future<String?> deleteTeacherProfile() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) return "User not logged in";
+
+      await _firestore.collection('teachers').doc(user.uid).delete();
+      return null; // No error
+    } catch (e) {
+      print("Error deleting teacher profile: $e");
+      return "Failed to delete profile";
     }
   }
 }

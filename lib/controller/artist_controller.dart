@@ -50,4 +50,24 @@ class ArtistController {
       print("Error deleting artist profile: $e");
     }
   }
+
+  // ✅ **5. Get All Artists**
+  Future<List<Artist>> getAllArtists() async {
+    try {
+      CollectionReference artistsRef = FirebaseFirestore.instance.collection('artists');
+      QuerySnapshot snapshot = await artistsRef.get();
+
+      if (snapshot.docs.isEmpty) {
+        print("⚠️ No artists found.");
+        return [];
+      }
+
+      return snapshot.docs.map((doc) => Artist.fromDocument(doc)).toList();
+    } catch (e) {
+      print("❌ Error fetching artists: $e");
+      return [];
+    }
+  }
+
+
 }

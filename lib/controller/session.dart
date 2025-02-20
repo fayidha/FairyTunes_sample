@@ -47,6 +47,26 @@ class Session {
     }
   }
 
+ static Future<Map<String, dynamic>?> getUserDetailsByUid(String uid) async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.first.data() as Map<String, dynamic>;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print("Error fetching user details: $e");
+      return null;
+    }
+  }
+
+
   // Delete session data (Logout)
   static Future<void> clearSession() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

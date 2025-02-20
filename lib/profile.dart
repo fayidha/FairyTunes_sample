@@ -1,12 +1,13 @@
 import 'package:dupepro/Artist_tabbar.dart';
+import 'package:dupepro/view/Teacher_profile_Add.dart';
 import 'package:dupepro/view/creategrp.dart';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dupepro/editprofile.dart';
 import 'package:dupepro/view/Company_add.dart';
-import 'package:dupepro/view/Teacher_profile_Add.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -147,10 +148,10 @@ class _ProfilePageState extends State<ProfilePage> {
             MaterialPageRoute(builder: (context) => ArtistTab()),
           );
         } else if (title == "Create a Band") {
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (context) => CreateGroupPage()),
-          // );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CreateGroupPage()),
+          );
         }
       },
       child: Card(
