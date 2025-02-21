@@ -6,12 +6,7 @@ class TeacherController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // ✅ Generate a unique Teacher ID
-  String _generateTeacherId() {
-    return 'TEACHER-${DateTime.now().millisecondsSinceEpoch}';
-  }
-
-  /// ✅ Register teacher and store data in Firestore
+  /// ✅ Register a new teacher
   Future<String?> registerTeacher({
     required String name,
     required String phone,
@@ -26,11 +21,12 @@ class TeacherController {
       User? user = _auth.currentUser;
       if (user == null) return "User not logged in";
 
-      String teacherId = _generateTeacherId(); // ✅ Unique teacher ID
+      String uid = user.uid;
+      print("🔥 DEBUG: Registering teacher with UID: $uid");
 
       Teacher teacher = Teacher(
-        uid: user.uid,
-        teacherId: teacherId,
+        uid: uid,
+        teacherId: uid, // Use UID as teacherId
         name: name,
         email: email,
         phone: phone,
@@ -41,15 +37,17 @@ class TeacherController {
         imageUrl: imageUrl,
       );
 
-      // Save teacher data to Firestore
-      await _firestore.collection('teachers').doc(user.uid).set(
+      print("🔥 DEBUG: Teacher data before saving: ${teacher.toMap()}");
+
+      await _firestore.collection('teachers').doc(uid).set(
         teacher.toMap(),
-        SetOptions(merge: true), // Merge to avoid overwriting existing data
+        SetOptions(merge: true), // Prevents overwriting fields
       );
 
+      print("✅ Teacher registered successfully: $uid");
       return null; // No error
     } catch (e) {
-      print("Error registering teacher: $e");
+      print("❌ Error registering teacher: $e");
       return "Failed to register teacher";
     }
   }
@@ -58,17 +56,22 @@ class TeacherController {
   Future<Teacher?> getTeacherByUserId() async {
     try {
       User? user = _auth.currentUser;
-      if (user == null) return null;
+      if (user == null) {
+        print("❌ No user logged in");
+        return null;
+      }
 
-      DocumentSnapshot doc =
-      await _firestore.collection('teachers').doc(user.uid).get();
+      DocumentSnapshot doc = await _firestore.collection('teachers').doc(user.uid).get();
 
       if (doc.exists) {
+        print("✅ Firestore data: ${doc.data()}");
         return Teacher.fromMap(doc.data() as Map<String, dynamic>);
+      } else {
+        print("❌ No teacher profile found for UID: ${user.uid}");
+        return null;
       }
-      return null; // Teacher not found
     } catch (e) {
-      print("Error fetching teacher: $e");
+      print("❌ Error fetching teacher: $e");
       return null;
     }
   }
@@ -80,9 +83,9 @@ class TeacherController {
       if (user == null) return "User not logged in";
 
       await _firestore.collection('teachers').doc(user.uid).update(teacherData);
-      return null; // No error
+      return null;
     } catch (e) {
-      print("Error updating teacher profile: $e");
+      print("❌ Error updating teacher profile: $e");
       return "Failed to update profile";
     }
   }
@@ -93,12 +96,10 @@ class TeacherController {
       User? user = _auth.currentUser;
       if (user == null) return false;
 
-      DocumentSnapshot doc =
-      await _firestore.collection('teachers').doc(user.uid).get();
-
+      DocumentSnapshot doc = await _firestore.collection('teachers').doc(user.uid).get();
       return doc.exists;
     } catch (e) {
-      print("Error checking teacher existence: $e");
+      print("❌ Error checking teacher existence: $e");
       return false;
     }
   }
@@ -110,9 +111,9 @@ class TeacherController {
       if (user == null) return "User not logged in";
 
       await _firestore.collection('teachers').doc(user.uid).delete();
-      return null; // No error
+      return null;
     } catch (e) {
-      print("Error deleting teacher profile: $e");
+      print("❌ Error deleting teacher profile: $e");
       return "Failed to delete profile";
     }
   }

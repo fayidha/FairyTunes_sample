@@ -266,7 +266,7 @@ class _ArtistProfileState extends State<ArtistProfile> {
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blueGrey.shade800, Colors.blueGrey.shade600],
+          colors: [Color(0xFF380230), Colors.blueGrey.shade900],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

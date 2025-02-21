@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dupepro/model/teacher_model.dart';
 import 'package:flutter/material.dart';
+import 'package:dupepro/model/teacher_model.dart';
 import 'package:dupepro/chat.dart';
 import 'package:dupepro/view/teacherprofileview.dart';
 
@@ -18,13 +18,14 @@ class _TeacherPageState extends State<TeacherPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F1F8), // Light lavender background
       appBar: AppBar(
-        backgroundColor: const Color(0xFF380230),
+        backgroundColor: const Color(0xFF380230), // Deep Purple
         iconTheme: const IconThemeData(color: Colors.white),
         title: TextField(
           decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.search, color: Color(0xFF380230)),
-            hintText: 'Search teachers..',
+            prefixIcon: const Icon(Icons.search, color: Colors.white),
+            hintText: 'Search teachers...',
             hintStyle: const TextStyle(color: Colors.white70),
             filled: true,
             fillColor: Colors.white24,
@@ -33,7 +34,7 @@ class _TeacherPageState extends State<TeacherPage> {
               borderSide: BorderSide.none,
             ),
           ),
-          style: const TextStyle(color: Color(0xFF380230)),
+          style: const TextStyle(color: Colors.white),
           onChanged: (value) {
             setState(() {
               searchQuery = value.toLowerCase();
@@ -64,62 +65,103 @@ class _TeacherPageState extends State<TeacherPage> {
             itemCount: teachers.length,
             itemBuilder: (context, index) {
               var teacher = teachers[index];
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(10),
-                  leading: CircleAvatar(
-                    backgroundImage: teacher.imageUrl != null
-                        ? NetworkImage(teacher.imageUrl!)
-                        : null,
-                    child: teacher.imageUrl == null
-                        ? const Icon(Icons.person, size: 40, color: Colors.blueGrey)
-                        : null,
-                  ),
-                  title: Text(
-                    teacher.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Category: ${teacher.category}'),
-                      Text('Qualification: ${teacher.qualification}'),
-                      Text('Location: ${teacher.address}'),
-                      Text('Phone: ${teacher.phone}'),
-                      Text('Email: ${teacher.email}'),
-                      Text('Experience: ${teacher.experience}'),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.chat, color: Colors.blueGrey),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatPage(teacherName: teacher.name),
-                        ),
-                      );
-                    },
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TeacherProfilePage(
-                          name: teacher.name,
-                          phone: teacher.phone,
-                          address: teacher.address,
-                          qualification: teacher.qualification,
-                          category: teacher.category,
-                          email: teacher.email,
-                          experience: teacher.experience,
-                        ),
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TeacherProfilePage(
+                        name: teacher.name,
+                        phone: teacher.phone,
+                        address: teacher.address,
+                        qualification: teacher.qualification,
+                        category: teacher.category,
+                        email: teacher.email,
+                        experience: teacher.experience,
                       ),
-                    );
-                  },
+                    ),
+                  );
+                },
+                child: Card(
+                  elevation: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shadowColor: Colors.black26,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        // Profile Picture
+                        CircleAvatar(
+                          radius: 38,
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage: teacher.imageUrl != null
+                              ? NetworkImage(teacher.imageUrl!)
+                              : null,
+                          child: teacher.imageUrl == null
+                              ? const Icon(Icons.person, size: 40, color: Colors.grey)
+                              : null,
+                        ),
+                        const SizedBox(width: 15),
+
+                        // Teacher Details
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                teacher.name,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF380230), // Deep Purple
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Row(
+                                children: [
+                                  Icon(Icons.grid_view_rounded, color: Colors.grey, size: 18), // Updated category icon
+                                  const SizedBox(width: 5),
+                                  Text(teacher.category, style: TextStyle(color: Colors.grey[800])),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                children: [
+                                  Icon(Icons.school, color: Colors.grey[600], size: 18),
+                                  const SizedBox(width: 5),
+                                  Text('Experience: ${teacher.experience} yrs', style: TextStyle(color: Colors.grey[700])),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Chat Button with New Icon
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF380230), Color(0xFFAB47BC)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.chat_rounded, color: Colors.white, size: 26),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatPage(teacherName: teacher.name),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
