@@ -2,8 +2,9 @@
 import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
 import 'package:dupepro/product.dart';
+import 'package:dupepro/seller_dash.dart';
+import 'package:dupepro/teachernotes_upload.dart';
 import 'package:dupepro/troups.dart';
-import 'package:dupepro/view/Vendor_add_product.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:dupepro/view/teachers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,6 +21,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
    String _userName="Unknown User";
    String _userEmail="No Email Found";
+   String? _userImageUrl;
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _userName = userDetails?['name'];
       _userEmail = userDetails?['email'] ;
+      _userImageUrl = userDetails?['userProfile'];
     });
   }
   @override
@@ -66,7 +69,9 @@ class _HomePageState extends State<HomePage> {
               accountName: Text(_userName),
               accountEmail: Text(_userEmail),
               currentAccountPicture: CircleAvatar(
-                backgroundImage: AssetImage('asset/music.jpg'),
+                backgroundImage: _userImageUrl != null
+                    ? NetworkImage(_userImageUrl!) // Load from URL
+                    : AssetImage('asset/music.jpg') as ImageProvider, // Default image if no URL
               ),
               decoration: BoxDecoration(color: Color(0xFF380230)),
             ),
@@ -430,8 +435,13 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 30),
           ElevatedButton(onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => AddProduct(),));
-          }, child: Text('Seller_Add product!') ),
+            Navigator.push(context, MaterialPageRoute(builder: (context) => SellerDashboard(),));
+          }, child: Text('Seller!') ),
+            const SizedBox(height: 30),
+
+            ElevatedButton(onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherNotesPage()));
+            }, child: Text('Teacher add notes') ),
           ],
         )
       )

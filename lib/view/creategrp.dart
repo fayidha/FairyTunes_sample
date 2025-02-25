@@ -53,23 +53,34 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     if (_formKey.currentState!.validate()) {
       String groupId = FirebaseFirestore.instance.collection('groups').doc().id;
 
+      // Create the group with an empty members list
       await FirebaseFirestore.instance.collection('groups').doc(groupId).set({
         'groupId': groupId,
         'groupName': _groupNameController.text,
         'groupDescription': _groupDescriptionController.text,
-        'members': _selectedArtists.map((artist) => artist.uid).toList(),
+        'members': [], // Members will be added here when they accept
         'createdAt': Timestamp.now(),
       });
 
-      for (var artist in _selectedArtists) {
-        await FirebaseFirestore.instance.collection('requests').add({
-          'groupId': groupId,
-          'groupName': _groupNameController.text,
+      // Prepare artist request list
+      List<Map<String, dynamic>> artistRequests = _selectedArtists.asMap().entries.map((entry) {
+        int index = entry.key;
+        Artist artist = entry.value;
+        return {
+          'index': index, // Numbering artists 0,1,2...
           'artistUid': artist.uid,
+          'artistName': artistNames[index], // Use previously fetched names
           'status': 'pending',
           'sentAt': Timestamp.now(),
-        });
-      }
+        };
+      }).toList();
+
+      // Store all requests under a single document
+      await FirebaseFirestore.instance.collection('requests').doc(groupId).set({
+        'groupId': groupId,
+        'groupName': _groupNameController.text,
+        'artists': artistRequests,
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Group created and requests sent!')),

@@ -1,6 +1,6 @@
 class Teacher {
-  final String uid; // Firebase Auth UID
-  final String teacherId; // Unique Teacher ID
+  final String uid;
+  final String teacherId;
   final String name;
   final String email;
   final String phone;
@@ -8,7 +8,7 @@ class Teacher {
   final String qualification;
   final String experience;
   final String address;
-  final String? imageUrl; // Nullable
+  final String? imageUrl;
 
   Teacher({
     required this.uid,
@@ -23,7 +23,6 @@ class Teacher {
     this.imageUrl,
   });
 
-  // Convert Teacher object to Map (for Firestore)
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
@@ -35,11 +34,10 @@ class Teacher {
       'qualification': qualification,
       'experience': experience,
       'address': address,
-      'imageUrl': imageUrl,
+      'imageUrl': imageUrl, // Ensure imageUrl is included here
     };
   }
 
-  // Create a Teacher object from a Firestore document
   factory Teacher.fromMap(Map<String, dynamic> map) {
     return Teacher(
       uid: map['uid'] ?? "Unknown UID",
@@ -51,7 +49,7 @@ class Teacher {
       qualification: map['qualification'] ?? "No Qualification",
       experience: map['experience'] ?? "No Experience",
       address: map['address'] ?? "No Address",
-      imageUrl: map['imageUrl'], // Nullable
+      imageUrl: map['imageUrl'], // Ensure imageUrl is retrieved here
     );
   }
 }

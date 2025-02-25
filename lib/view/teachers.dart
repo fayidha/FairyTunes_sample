@@ -51,10 +51,9 @@ class _TeacherPageState extends State<TeacherPage> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('No teachers found'));
           }
-
           var teachers = snapshot.data!.docs.map((doc) {
             var data = doc.data() as Map<String, dynamic>;
-            return Teacher.fromMap(data);
+            return Teacher.fromMap(data); // Ensure imageUrl is included in the Teacher object
           }).where((teacher) {
             return teacher.name.toLowerCase().contains(searchQuery) ||
                 teacher.category.toLowerCase().contains(searchQuery);
@@ -78,6 +77,7 @@ class _TeacherPageState extends State<TeacherPage> {
                         category: teacher.category,
                         email: teacher.email,
                         experience: teacher.experience,
+                        imageUrl: teacher.imageUrl, // Pass the imageUrl to the profile page
                       ),
                     ),
                   );
@@ -95,10 +95,10 @@ class _TeacherPageState extends State<TeacherPage> {
                         CircleAvatar(
                           radius: 38,
                           backgroundColor: Colors.grey[300],
-                          backgroundImage: teacher.imageUrl != null
+                          backgroundImage: teacher.imageUrl != null && teacher.imageUrl!.isNotEmpty
                               ? NetworkImage(teacher.imageUrl!)
                               : null,
-                          child: teacher.imageUrl == null
+                          child: teacher.imageUrl == null || teacher.imageUrl!.isEmpty
                               ? const Icon(Icons.person, size: 40, color: Colors.grey)
                               : null,
                         ),

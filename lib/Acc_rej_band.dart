@@ -26,7 +26,7 @@ class _BandRequestsPageState extends State<BandRequestsPage> {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundImage: NetworkImage(bandRequests[index]['image']),
+                  backgroundImage: NetworkImage(bandRequests[index]['music.jpg']),
                 ),
                 SizedBox(width: 16),
                 Expanded(

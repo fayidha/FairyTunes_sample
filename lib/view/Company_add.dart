@@ -1,9 +1,11 @@
 import 'package:dupepro/SuccessScreen.dart';
 import 'package:dupepro/controller/Seller_controller.dart';
+import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/model/seller_model.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+
 
 class CompanyAdd extends StatefulWidget {
   const CompanyAdd({super.key});
@@ -15,14 +17,36 @@ class CompanyAdd extends StatefulWidget {
 class _CompanyAddState extends State<CompanyAdd> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
-  XFile? _image; // Changed to nullable type
-  late String _companyName;
+  XFile? _image; // Nullable type for image
+  late String _name;
   late String _email;
+  late String _companyName;
   late String _phone;
   late String _address;
   late String _productCategory;
   final SellerController _controller = SellerController();
   bool _isLoading = false;
+  bool _isFetchingUserData = true; // Flag to track loading user data
+
+  // Fetch user details from the session and Firestore
+  Future<void> _fetchUserDetails() async {
+    try {
+      Map<String, dynamic>? userDetails = await Session.getUserDetails();
+      if (userDetails != null) {
+        setState(() {
+          _name = userDetails['name'] ?? ''; // Set name
+          _email = userDetails['email'] ?? ''; // Set email
+          // Optionally, set the profile image if available
+        });
+      }
+    } catch (e) {
+      print("Error fetching user details: $e");
+    }
+
+    setState(() {
+      _isFetchingUserData = false; // Stop loading once data is fetched
+    });
+  }
 
   // Method to pick an image from the gallery
   Future<void> _pickImage() async {
@@ -40,13 +64,13 @@ class _CompanyAddState extends State<CompanyAdd> {
       setState(() => _isLoading = true); // Show loading indicator
 
       Seller seller = Seller(
-        uid: "", // Add the UID here if necessary
+        uid: "", // UID will be fetched automatically from the current user
         companyName: _companyName,
-        email: _email,
+        email: _email, // Use fetched email
         phone: _phone,
         address: _address,
         productCategory: _productCategory,
-        profileImage: _image?.path,  // Safe null check for profileImage
+        profileImage: _image?.path,  // Use picked image for profile
       );
 
       try {
@@ -70,6 +94,12 @@ class _CompanyAddState extends State<CompanyAdd> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _fetchUserDetails(); // Fetch user details when screen is loaded
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -79,7 +109,9 @@ class _CompanyAddState extends State<CompanyAdd> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
+        child: _isFetchingUserData
+            ? const Center(child: CircularProgressIndicator()) // Show loading spinner while fetching user data
+            : Form(
           key: _formKey,
           child: Column(
             children: [
@@ -97,17 +129,24 @@ class _CompanyAddState extends State<CompanyAdd> {
               ),
               const SizedBox(height: 20),
 
+              // Name Input (pre-populated with current user name)
+              _buildTextField("Name", (value) {
+                _name = value;
+              }, initialValue: _name),
+
+              const SizedBox(height: 10),
+
+              // Email Input (pre-populated with current user email)
+              _buildTextField("Email", (value) {
+                _email = value;
+              }, keyboardType: TextInputType.emailAddress, initialValue: _email),
+
+              const SizedBox(height: 10),
+
               // Company Name Input
               _buildTextField("Company Name", (value) {
                 _companyName = value;
               }),
-
-              const SizedBox(height: 10),
-
-              // Email Input
-              _buildTextField("Email", (value) {
-                _email = value;
-              }, keyboardType: TextInputType.emailAddress),
 
               const SizedBox(height: 10),
 
@@ -152,10 +191,11 @@ class _CompanyAddState extends State<CompanyAdd> {
     );
   }
 
-  // Helper method for creating text fields
+  // Helper method for creating text fields with optional initial values
   Widget _buildTextField(String label, Function(String) onChanged,
-      {TextInputType keyboardType = TextInputType.text}) {
+      {String? initialValue, TextInputType keyboardType = TextInputType.text}) {
     return TextFormField(
+      initialValue: initialValue,
       decoration: InputDecoration(labelText: label),
       keyboardType: keyboardType,
       onChanged: onChanged,

@@ -20,7 +20,6 @@ class _TeacherAddState extends State<TeacherAdd> {
   XFile? _image;
   bool _isEditing = false;
 
-
   // ✅ TextEditingControllers for all fields
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -30,7 +29,7 @@ class _TeacherAddState extends State<TeacherAdd> {
   final TextEditingController _experienceController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
 
-  String _profileImage = "";
+  String _profileImage = ""; // This will hold the image URL
   bool _isLoading = false;
 
   final TeacherController _teacherController = TeacherController();
@@ -115,6 +114,9 @@ class _TeacherAddState extends State<TeacherAdd> {
 
       String? imageUrl = await _uploadImage(); // Upload image and get URL
 
+      // Use the fetched image URL from the users collection if no new image is selected
+      String finalImageUrl = imageUrl ?? _profileImage;
+
       String? errorMessage = await _teacherController.registerTeacher(
         name: _nameController.text,
         email: _emailController.text,
@@ -123,7 +125,7 @@ class _TeacherAddState extends State<TeacherAdd> {
         qualification: _qualificationController.text,
         experience: _experienceController.text,
         address: _addressController.text,
-        imageUrl: imageUrl ?? _profileImage, // Use old image if not updated
+        imageUrl: finalImageUrl, // Use the fetched image URL if no new image is selected
       );
 
       setState(() {
@@ -146,6 +148,7 @@ class _TeacherAddState extends State<TeacherAdd> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -205,8 +208,8 @@ class _TeacherAddState extends State<TeacherAdd> {
           children: [
             CircleAvatar(
               radius: 50,
-              backgroundImage: data['imageUrl'] != null
-                  ? NetworkImage(data['imageUrl'])
+              backgroundImage: _profileImage.isNotEmpty
+                  ? NetworkImage(_profileImage) // Display the fetched profile image
                   : const AssetImage('asset/210379377.png') as ImageProvider,
             ),
             const SizedBox(height: 10),

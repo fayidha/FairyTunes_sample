@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
 
-class BookingHistoryPage extends StatefulWidget {
+class BookingHistoryPage extends StatelessWidget {
   const BookingHistoryPage({super.key});
 
-  @override
-  State<BookingHistoryPage> createState() => _BookingHistoryPageState();
-}
-
-class _BookingHistoryPageState extends State<BookingHistoryPage> {
-  final List<Map<String, String>> bookingHistory = [
+  final List<Map<String, dynamic>> bookings = const [
     {
-      'event': 'SHOWNEW',
-      'date': '2025-02-10',
-      'status': 'Completed'
+      "bookingId": "BK001",
+      "date": "Feb 20, 2025",
+      "service": "Hotel Stay",
+      "location": "Hilton, New York",
+      "price": 250.00,
+      "status": "Completed"
     },
     {
-      'event': 'Guitar SHOW',
-      'date': '2025-02-12',
-      'status': 'Pending'
+      "bookingId": "BK002",
+      "date": "Mar 10, 2025",
+      "service": "Flight Ticket",
+      "location": "Los Angeles to Chicago",
+      "price": 320.50,
+      "status": "Upcoming"
     },
     {
-      'event': 'Violin Recital',
-      'date': '2025-02-08',
-      'status': 'Cancelled'
+      "bookingId": "BK003",
+      "date": "Jan 05, 2025",
+      "service": "Car Rental",
+      "location": "Miami, Florida",
+      "price": 150.75,
+      "status": "Cancelled"
     },
   ];
 
@@ -30,50 +34,68 @@ class _BookingHistoryPageState extends State<BookingHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Booking History'),
-        centerTitle: true,
-        backgroundColor: Colors.purple,
+        title: const Text("Booking History"),
+        backgroundColor: Colors.deepPurple,
       ),
-      body: ListView.builder(
-        itemCount: bookingHistory.length,
+      body: bookings.isEmpty
+          ? const Center(child: Text("No past bookings found"))
+          : ListView.builder(
+        padding: const EdgeInsets.all(10),
+        itemCount: bookings.length,
         itemBuilder: (context, index) {
-          final booking = bookingHistory[index];
+          final booking = bookings[index];
           return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: const EdgeInsets.symmetric(vertical: 8),
             elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListTile(
-              leading: Icon(
-                booking['status'] == 'Completed'
-                    ? Icons.check_circle
-                    : booking['status'] == 'Pending'
-                    ? Icons.hourglass_empty
-                    : Icons.cancel,
-                color: booking['status'] == 'Completed'
-                    ? Colors.green
-                    : booking['status'] == 'Pending'
-                    ? Colors.orange
-                    : Colors.red,
+              contentPadding: const EdgeInsets.all(12),
+              leading: CircleAvatar(
+                backgroundColor: Colors.deepPurple.shade100,
+                child: Icon(
+                  Icons.book_online,
+                  color: Colors.deepPurple,
+                ),
               ),
-              title: Text(booking['event'] ?? 'Unknown Event',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('Date: ${booking['date']}'),
+              title: Text(
+                booking["service"],
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Date: ${booking["date"]}"),
+                  Text("Location: ${booking["location"]}"),
+                  Text("Price: \$${booking["price"].toStringAsFixed(2)}"),
+                ],
+              ),
               trailing: Text(
-                booking['status'] ?? '',
+                booking["status"],
                 style: TextStyle(
-                  color: booking['status'] == 'Completed'
-                      ? Colors.green
-                      : booking['status'] == 'Pending'
-                      ? Colors.orange
-                      : Colors.red,
+                  color: _getStatusColor(booking["status"]),
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              onTap: () {
+                // Navigate to booking details page if needed
+              },
             ),
           );
         },
       ),
     );
   }
-}
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case "Completed":
+        return Colors.green;
+      case "Upcoming":
+        return Colors.orange;
+      case "Cancelled":
+        return Colors.red;
+      default:
+        return Colors.black;
+    }
+  }
+}

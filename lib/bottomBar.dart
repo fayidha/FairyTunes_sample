@@ -1,3 +1,4 @@
+import 'package:dupepro/History.dart';
 import 'package:dupepro/cart.dart';
 import 'package:dupepro/chatlist.dart';
 import 'package:dupepro/home.dart';
@@ -17,6 +18,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
 
   final List<Widget> _pages = [
     HomePage(),
+    History(),
     CartPage(),
     Chatlist(),
     ProfilePage(),
@@ -44,6 +46,9 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
           BottomNavigationBarItem(
               icon: Icon(Icons.history, color: Color(0xFF380230)),
               label: 'History'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_cart, color: Color(0xFF380230)),
+              label: 'Cart'),
           BottomNavigationBarItem(
               icon: Icon(Icons.message, color: Color(0xFF380230)),
               label: 'Messages'),

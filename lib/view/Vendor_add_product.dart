@@ -15,9 +15,10 @@ class AddProduct extends StatefulWidget {
 class _AddProductState extends State<AddProduct> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _categoryController = TextEditingController();
+  final _companyController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  final _companyController = TextEditingController();
   List<File> _images = [];
   final ProductController _productController = ProductController();
 
@@ -33,9 +34,10 @@ class _AddProductState extends State<AddProduct> {
   @override
   void dispose() {
     _nameController.dispose();
+    _categoryController.dispose();
+    _companyController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
-    _companyController.dispose();
     super.dispose();
   }
 
@@ -46,9 +48,10 @@ class _AddProductState extends State<AddProduct> {
 
         Product product = Product(
           name: _nameController.text,
+          category: _categoryController.text,
+          company: _companyController.text,
           description: _descriptionController.text,
           price: double.parse(_priceController.text),
-          company: _companyController.text,
           imageUrls: imageUrls,
         );
 
@@ -78,12 +81,13 @@ class _AddProductState extends State<AddProduct> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        backgroundColor: Color(0xFF380230),
+        iconTheme: IconThemeData(color: Colors.white), // Icon color
+        backgroundColor: Color(0xFF380230), // AppBar color
         title: const Text(
-          "Add Product Details",
-          style: TextStyle(color: Colors.white),
+          "Add Product",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
         ),
+        centerTitle: true,
       ),
       body: Padding(
         padding: EdgeInsets.all(16),
@@ -91,55 +95,81 @@ class _AddProductState extends State<AddProduct> {
           child: Form(
             key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 GestureDetector(
                   onTap: _pickImages,
                   child: Container(
-                    height: 150,
-                    color: Colors.grey[300],
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.purple, width: 2),
+                    ),
                     child: _images.isEmpty
-                        ? Icon(Icons.add_a_photo, size: 50, color: Colors.grey[700])
-                        : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _images.length,
-                      itemBuilder: (context, index) => Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: Image.file(_images[index], height: 150),
+                        ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo, size: 60, color: Colors.purple[700]),
+                          Text("Tap to add images", style: TextStyle(color: Colors.purple[700], fontWeight: FontWeight.w500))
+                        ],
                       ),
+                    )
+                        : Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: _images.map((image) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(image, height: 120, width: 120, fit: BoxFit.cover),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ),
+                SizedBox(height: 20),
                 TextFormField(
                   controller: _nameController,
-                  decoration: InputDecoration(labelText: "Product Name"),
+                  decoration: InputDecoration(labelText: "Product Name", border: OutlineInputBorder()),
                   validator: (value) => value == null || value.isEmpty ? "Enter product name" : null,
                 ),
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _categoryController,
+                  decoration: InputDecoration(labelText: "Category", border: OutlineInputBorder()),
+                  validator: (value) => value == null || value.isEmpty ? "Enter category" : null,
+                ),
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _companyController,
+                  decoration: InputDecoration(labelText: "Company Name", border: OutlineInputBorder()),
+                  validator: (value) => value == null || value.isEmpty ? "Enter company name" : null,
+                ),
+                SizedBox(height: 10),
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: InputDecoration(labelText: "Description"),
+                  decoration: InputDecoration(labelText: "Description", border: OutlineInputBorder()),
                   maxLines: 3,
                   validator: (value) => value == null || value.isEmpty ? "Enter product description" : null,
                 ),
+                SizedBox(height: 10),
                 TextFormField(
                   controller: _priceController,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: "Price (₹)"),
+                  decoration: InputDecoration(labelText: "Price (₹)", border: OutlineInputBorder()),
                   validator: (value) => value == null || value.isEmpty ? "Enter product price" : null,
-                ),
-                TextFormField(
-                  controller: _companyController,
-                  decoration: InputDecoration(labelText: "Company Name"),
-                  validator: (value) => value == null || value.isEmpty ? "Enter company name" : null,
                 ),
                 SizedBox(height: 20),
                 ElevatedButton.icon(
                   onPressed: _submitForm,
-                  icon: Icon(Icons.add_circle),
+                  icon: Icon(Icons.add_circle, color: Colors.white), // Icon color
                   label: Text("Add Product"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF380230),
+                    backgroundColor: Color(0xFF380230), // Button background color
                     foregroundColor: Colors.white,
                     minimumSize: Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ],

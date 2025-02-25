@@ -15,7 +15,7 @@ class TeacherController {
     required String qualification,
     required String experience,
     required String address,
-    String? imageUrl,
+    String? imageUrl,  // Image URL from Firebase Storage or users collection
   }) async {
     try {
       User? user = _auth.currentUser;
@@ -24,9 +24,10 @@ class TeacherController {
       String uid = user.uid;
       print("🔥 DEBUG: Registering teacher with UID: $uid");
 
+      // Create Teacher object
       Teacher teacher = Teacher(
         uid: uid,
-        teacherId: uid, // Use UID as teacherId
+        teacherId: uid,  // Use UID as teacherId
         name: name,
         email: email,
         phone: phone,
@@ -34,23 +35,25 @@ class TeacherController {
         qualification: qualification,
         experience: experience,
         address: address,
-        imageUrl: imageUrl,
+        imageUrl: imageUrl ?? "",  // Ensure imageUrl is either null or default empty
       );
 
       print("🔥 DEBUG: Teacher data before saving: ${teacher.toMap()}");
 
+      // Save Teacher object to Firestore
       await _firestore.collection('teachers').doc(uid).set(
         teacher.toMap(),
         SetOptions(merge: true), // Prevents overwriting fields
       );
 
       print("✅ Teacher registered successfully: $uid");
-      return null; // No error
+      return null;  // No error
     } catch (e) {
       print("❌ Error registering teacher: $e");
       return "Failed to register teacher";
     }
   }
+
 
   /// ✅ Fetch teacher profile by Firebase Auth UID
   Future<Teacher?> getTeacherByUserId() async {

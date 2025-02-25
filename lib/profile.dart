@@ -1,11 +1,12 @@
-import 'package:dupepro/Artist_tabbar.dart';
-import 'package:dupepro/view/Teacher_profile_Add.dart';
-import 'package:dupepro/view/creategrp.dart';
-
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dupepro/Artist_tabbar.dart';
+import 'package:dupepro/view/Teacher_profile_Add.dart';
+import 'package:dupepro/view/creategrp.dart';
 import 'package:dupepro/editprofile.dart';
 import 'package:dupepro/view/Company_add.dart';
 
@@ -15,10 +16,58 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  late File _imageFile;
   String name = "";
   String email = "";
   String profileImage = '';
   final ImagePicker _picker = ImagePicker();
+
+  // Pick image from gallery
+  Future pickImages() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+      _uploadImage();
+    }
+  }
+
+
+  Future<void> _uploadImage() async {
+    try {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference storageRef = FirebaseStorage.instance.ref().child('user_images/$fileName.jpg');
+
+      UploadTask uploadTask = storageRef.putFile(_imageFile);
+
+      TaskSnapshot taskSnapshot = await uploadTask;
+
+      String imageUrl = await taskSnapshot.ref.getDownloadURL();
+
+
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'userProfile': imageUrl,
+        });
+
+        await FirebaseFirestore.instance.collection('teachers').doc(user.uid).update({
+          'imageUrl': imageUrl,
+        });
+      }
+
+      setState(() {
+        profileImage = imageUrl;
+      });
+
+      print('Image uploaded successfully: $imageUrl');
+    } catch (e) {
+      print('Failed to upload image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
+    }
+  }
+
 
   @override
   void initState() {
@@ -28,7 +77,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserProfile() async {
     User? user = FirebaseAuth.instance.currentUser;
-
     if (user != null) {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection("users")
@@ -38,7 +86,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           name = userDoc['name'];
           email = userDoc['email'];
-          profileImage = userDoc['userProfile'];
+          profileImage = userDoc['userProfile'] ?? ''; // Default to empty string if no image exists
         });
       }
     }
@@ -58,13 +106,10 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           children: [
             GestureDetector(
-              onTap: () async {
-                final XFile? pickedFile =
-                    await _picker.pickImage(source: ImageSource.gallery);
-                if (pickedFile != null)
-                  setState(() => profileImage = pickedFile.path);
+              onTap: () {
+                pickImages(); // When tapped, pick an image
               },
-              child:  CircleAvatar(
+              child: CircleAvatar(
                 radius: 60,
                 backgroundImage: profileImage.isNotEmpty
                     ? NetworkImage(profileImage)
@@ -72,14 +117,14 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             SizedBox(height: 20),
-            Text(name,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             Text(email, style: TextStyle(fontSize: 16, color: Colors.grey)),
             SizedBox(height: 10),
             ElevatedButton(
-                onPressed: () => Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => Editprofile())),
-                child: Text('Edit Profile')),
+              onPressed: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => Editprofile())),
+              child: Text('Edit Profile'),
+            ),
             SizedBox(height: 20),
             _buildSwitchMyRole(context),
             SizedBox(height: 20),
@@ -138,8 +183,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _carouselCard(
-      BuildContext context, String title, String subtitle, IconData icon) {
+  Widget _carouselCard(BuildContext context, String title, String subtitle, IconData icon) {
     return GestureDetector(
       onTap: () {
         if (title == "Create a Artist Profile") {
