@@ -9,23 +9,45 @@ class SellerController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Fetch user details by UID
-  static Future<Map<String, dynamic>?> getUserDetailsByUid(String uid) async {
+  // Fetch seller details by UID
+  Future<Seller?> getSellerDetails(String uid) async {
     try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('uid', isEqualTo: uid)
-          .limit(1)
-          .get();
-
-      if (snapshot.docs.isNotEmpty) {
-        return snapshot.docs.first.data() as Map<String, dynamic>;
+      DocumentSnapshot snapshot = await _firestore.collection('sellers').doc(uid).get();
+      if (snapshot.exists) {
+        return Seller.fromMap(snapshot.data() as Map<String, dynamic>);
       } else {
+        print("No seller document found for UID: $uid");
         return null;
       }
     } catch (e) {
-      print("Error fetching user details: $e");
+      print("Error fetching seller details: $e");
       return null;
+    }
+  }
+
+  // Update seller details
+  Future<String?> updateSeller(Seller seller) async {
+    try {
+      String? imageUrl;
+
+      // Upload new image if available
+      if (seller.profileImage != null && seller.profileImage!.isNotEmpty) {
+        imageUrl = await _uploadImage(seller.profileImage!, seller.uid);
+      }
+
+      final updatedSeller = {
+        'companyName': seller.companyName,
+        'email': seller.email,
+        'phone': seller.phone,
+        'address': seller.address,
+        'productCategory': seller.productCategory,
+        'profileImage': imageUrl ?? seller.profileImage,
+      };
+
+      await _firestore.collection('sellers').doc(seller.uid).update(updatedSeller);
+      return null;
+    } catch (e) {
+      return 'Failed to update seller: $e';
     }
   }
 
@@ -37,36 +59,44 @@ class SellerController {
         return 'User not logged in.';
       }
 
-      // Fetch user details
-      var userDetails = await getUserDetailsByUid(user.uid);
-      if (userDetails == null) {
-        return 'User details not found.';
-      }
-
       String? imageUrl;
 
+      // If the seller has a profile image, upload it
       if (seller.profileImage != null && seller.profileImage!.isNotEmpty) {
-        File imageFile = File(seller.profileImage!);
-        String fileName = 'sellers/${user.uid}.jpg'; // Use the UID as file name
-        UploadTask uploadTask = _storage.ref(fileName).putFile(imageFile);
-        TaskSnapshot snapshot = await uploadTask;
-        imageUrl = await snapshot.ref.getDownloadURL();
+        imageUrl = await _uploadImage(seller.profileImage!, user.uid);
+      } else {
+        // If no image is provided, use the user's photoURL or set a default image URL
+        imageUrl = user.photoURL ?? 'https://your-default-image-url.com/default_image.jpg';  // Ensure this URL exists
       }
 
       final newSeller = {
-        'uid': user.uid, // Use logged-in user's UID
+        'uid': user.uid,
         'companyName': seller.companyName,
-        'email': userDetails['email'] ?? '', // Fetch email from user details
+        'email': seller.email,
         'phone': seller.phone,
         'address': seller.address,
         'productCategory': seller.productCategory,
-        'profileImage': imageUrl ?? userDetails['profileImage'], // Use fetched profile image
+        'profileImage': imageUrl,
       };
 
-      await _firestore.collection('sellers').doc(user.uid).set(newSeller); // Save using UID as the document ID
+      await _firestore.collection('sellers').doc(user.uid).set(newSeller);
       return null;
     } catch (e) {
       return 'Failed to add seller: $e';
+    }
+  }
+
+  // Method to handle image upload to Firebase Storage
+  Future<String> _uploadImage(String filePath, String uid) async {
+    try {
+      File imageFile = File(filePath);
+      String fileName = 'sellers/$uid.jpg';  // Ensure you are saving the image in the correct location in Firebase Storage
+      UploadTask uploadTask = _storage.ref(fileName).putFile(imageFile);
+      TaskSnapshot snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      print("Error uploading image: $e");
+      return '';  // If image upload fails, return an empty string (you can also handle this more gracefully)
     }
   }
 }

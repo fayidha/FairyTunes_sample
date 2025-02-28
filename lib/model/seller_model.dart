@@ -1,4 +1,3 @@
-// model/seller_model.dart
 class Seller {
   String uid;
   String companyName;
@@ -18,6 +17,7 @@ class Seller {
     this.profileImage,
   });
 
+  // Convert Seller object to a map for storing in Firestore
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
@@ -30,6 +30,7 @@ class Seller {
     };
   }
 
+  // Convert map to Seller object
   factory Seller.fromMap(Map<String, dynamic> map) {
     return Seller(
       uid: map['uid'] ?? '',

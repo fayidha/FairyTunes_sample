@@ -1,11 +1,9 @@
-import 'package:dupepro/SuccessScreen.dart';
-import 'package:dupepro/controller/Seller_controller.dart';
-import 'package:dupepro/controller/session.dart';
-import 'package:dupepro/model/seller_model.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
+import 'package:dupepro/controller/Seller_controller.dart';
+import 'package:dupepro/controller/session.dart';
+import 'package:dupepro/model/seller_model.dart';
 
 class CompanyAdd extends StatefulWidget {
   const CompanyAdd({super.key});
@@ -18,25 +16,37 @@ class _CompanyAddState extends State<CompanyAdd> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
   XFile? _image; // Nullable type for image
+
+  // Fields to store user data
   late String _name;
   late String _email;
   late String _companyName;
   late String _phone;
   late String _address;
   late String _productCategory;
+
+  // Controller for Seller operations
   final SellerController _controller = SellerController();
+
+  // Loading state flags
   bool _isLoading = false;
   bool _isFetchingUserData = true; // Flag to track loading user data
+  bool _isEditing = false; // Flag to track if the user is editing
 
-  // Fetch user details from the session and Firestore
+  // Fetch user details from the session
   Future<void> _fetchUserDetails() async {
     try {
       Map<String, dynamic>? userDetails = await Session.getUserDetails();
+      print("Fetched User Details: $userDetails"); // Debugging: print fetched details
+
       if (userDetails != null) {
         setState(() {
-          _name = userDetails['name'] ?? ''; // Set name
-          _email = userDetails['email'] ?? ''; // Set email
-          // Optionally, set the profile image if available
+          _name = userDetails['name'] ?? 'Not Available';
+          _email = userDetails['email'] ?? 'Not Available';
+          _companyName = userDetails['companyName'] ?? 'Not Available';
+          _phone = userDetails['phone'] ?? 'Not Available';
+          _address = userDetails['address'] ?? 'Not Available';
+          _productCategory = userDetails['productCategory'] ?? 'Not Available';
         });
       }
     } catch (e) {
@@ -66,7 +76,7 @@ class _CompanyAddState extends State<CompanyAdd> {
       Seller seller = Seller(
         uid: "", // UID will be fetched automatically from the current user
         companyName: _companyName,
-        email: _email, // Use fetched email
+        email: _email,
         phone: _phone,
         address: _address,
         productCategory: _productCategory,
@@ -77,10 +87,6 @@ class _CompanyAddState extends State<CompanyAdd> {
         await _controller.addSeller(seller); // Add the seller using the controller
 
         setState(() => _isLoading = false); // Hide loading indicator
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => SuccessScreen()),
-        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Seller Data Saved")),
         );
@@ -111,89 +117,198 @@ class _CompanyAddState extends State<CompanyAdd> {
         padding: const EdgeInsets.all(16.0),
         child: _isFetchingUserData
             ? const Center(child: CircularProgressIndicator()) // Show loading spinner while fetching user data
-            : Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Profile Image Picker
-              GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.grey[200],
-                  backgroundImage: _image != null ? FileImage(File(_image!.path)) : null,
-                  child: _image == null
-                      ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Name Input (pre-populated with current user name)
-              _buildTextField("Name", (value) {
-                _name = value;
-              }, initialValue: _name),
-
-              const SizedBox(height: 10),
-
-              // Email Input (pre-populated with current user email)
-              _buildTextField("Email", (value) {
-                _email = value;
-              }, keyboardType: TextInputType.emailAddress, initialValue: _email),
-
-              const SizedBox(height: 10),
-
-              // Company Name Input
-              _buildTextField("Company Name", (value) {
-                _companyName = value;
-              }),
-
-              const SizedBox(height: 10),
-
-              // Phone Number Input
-              _buildTextField("Phone Number", (value) {
-                _phone = value;
-              }, keyboardType: TextInputType.phone),
-
-              const SizedBox(height: 10),
-
-              // Company Address Input
-              _buildTextField("Company Address", (value) {
-                _address = value;
-              }),
-
-              const SizedBox(height: 10),
-
-              // Product Category Input
-              _buildTextField("Product Category", (value) {
-                _productCategory = value;
-              }),
-
-              const SizedBox(height: 20),
-
-              // Save Button
-              Center(
-                child: _isLoading
-                    ? const CircularProgressIndicator() // Show spinner when loading
-                    : ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF380230),
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: _saveSeller,
-                  child: const Text("Save"),
-                ),
-              ),
-            ],
-          ),
+            : Column(
+          children: [
+            // If user is editing, show the editable form, else show profile card
+            _isEditing ? _buildEditableForm() : _buildProfileCard(),
+          ],
         ),
+      ),
+    );
+  }
+
+  // Profile Card with Edit Button
+  Widget _buildProfileCard() {
+    return Center(
+      child: Container(
+        width: 360,
+        padding: const EdgeInsets.all(25),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF380230), Colors.blueGrey.shade900],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 15,
+              spreadRadius: 3,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Profile Image
+            CircleAvatar(
+              radius: 50,
+              backgroundImage: _image != null
+                  ? FileImage(File(_image!.path))
+                  : null,
+              child: _image == null
+                  ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
+                  : null,
+            ),
+            const SizedBox(height: 20),
+
+            // Name
+            Text(
+              _name.isNotEmpty ? _name : 'No name available',
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+
+            // Email
+            Text(
+              _email.isNotEmpty ? _email : 'No email available',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+
+            // Company Name
+            Text(
+              _companyName.isNotEmpty ? _companyName : 'No company name available',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+
+            // Phone
+            Text(
+              _phone.isNotEmpty ? _phone : 'No phone number available',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+
+            // Address
+            Text(
+              _address.isNotEmpty ? _address : 'No address available',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+
+            // Product Category
+            Text(
+              _productCategory.isNotEmpty ? _productCategory : 'No product category available',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+
+            // Edit Button
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isEditing = true; // Switch to editing mode
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF380230),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Edit", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Editable Form for Company and Contact Info
+  Widget _buildEditableForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          // Profile Image Picker
+          GestureDetector(
+            onTap: _pickImage,
+            child: CircleAvatar(
+              radius: 50,
+              backgroundColor: Colors.grey[200],
+              backgroundImage: _image != null ? FileImage(File(_image!.path)) : null,
+              child: _image == null
+                  ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Name Input (Editable)
+          _buildTextField("Name", (value) {
+            _name = value;
+          }, initialValue: _name, enabled: true),
+
+          const SizedBox(height: 10),
+
+          // Email Input (Editable)
+          _buildTextField("Email", (value) {
+            _email = value;
+          }, keyboardType: TextInputType.emailAddress, initialValue: _email, enabled: true),
+
+          const SizedBox(height: 10),
+
+          // Company Name Input
+          _buildTextField("Company Name", (value) {
+            _companyName = value;
+          }, initialValue: _companyName),
+
+          const SizedBox(height: 10),
+
+          // Phone Number Input
+          _buildTextField("Phone Number", (value) {
+            _phone = value;
+          }, keyboardType: TextInputType.phone),
+
+          const SizedBox(height: 10),
+
+          // Company Address Input
+          _buildTextField("Company Address", (value) {
+            _address = value;
+          }, initialValue: _address),
+
+          const SizedBox(height: 10),
+
+          // Product Category Input
+          _buildTextField("Product Category", (value) {
+            _productCategory = value;
+          }, initialValue: _productCategory),
+
+          const SizedBox(height: 20),
+
+          // Save Button
+          Center(
+            child: _isLoading
+                ? const CircularProgressIndicator() // Show spinner when loading
+                : ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF380230),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: _saveSeller,
+              child: const Text("Save"),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // Helper method for creating text fields with optional initial values
   Widget _buildTextField(String label, Function(String) onChanged,
-      {String? initialValue, TextInputType keyboardType = TextInputType.text}) {
+      {String? initialValue, TextInputType keyboardType = TextInputType.text, bool enabled = true}) {
     return TextFormField(
       initialValue: initialValue,
       decoration: InputDecoration(labelText: label),
@@ -205,6 +320,7 @@ class _CompanyAddState extends State<CompanyAdd> {
         }
         return null;
       },
+      enabled: enabled,
     );
   }
 }

@@ -1,27 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key});
-
   @override
-  State<CartPage> createState() => _CartPageState();
+  _CartPageState createState() => _CartPageState();
 }
 
 class _CartPageState extends State<CartPage> {
   List<Map<String, dynamic>> cartItems = [
-    {"name": "Laptop", "price": 999.99, "quantity": 1},
-    {"name": "Headphones", "price": 199.99, "quantity": 1},
-    {"name": "Smartphone", "price": 799.99, "quantity": 1},
+    {
+      "name": "Product 1",
+      "price": 500,
+      "quantity": 1,
+      "imageUrl": "https://via.placeholder.com/150"
+    },
+    {
+      "name": "Product 2",
+      "price": 1200,
+      "quantity": 2,
+      "imageUrl": "https://via.placeholder.com/150"
+    },
   ];
 
-  double get totalPrice => cartItems.fold(
-      0, (sum, item) => sum + (item["price"] * item["quantity"]));
+  double getTotalPrice() {
+    return cartItems.fold(0, (sum, item) => sum + (item['price'] * item['quantity']));
+  }
 
   void updateQuantity(int index, int change) {
     setState(() {
-      if (cartItems[index]["quantity"] + change > 0) {
-        cartItems[index]["quantity"] += change;
-      } else {
+      cartItems[index]['quantity'] += change;
+      if (cartItems[index]['quantity'] <= 0) {
         cartItems.removeAt(index);
       }
     });
@@ -31,61 +39,100 @@ class _CartPageState extends State<CartPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Shopping Cart"),
-        backgroundColor: Colors.deepPurple,
+        title: Text("Cart", style: GoogleFonts.lora(color: Colors.white)),
+        backgroundColor: Color(0xFF380230),
       ),
-      body: cartItems.isEmpty
-          ? const Center(child: Text("Your cart is empty"))
-          : ListView.builder(
-        itemCount: cartItems.length,
-        itemBuilder: (context, index) {
-          final item = cartItems[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.deepPurple.shade100,
-                child: Text(item["name"][0], style: const TextStyle(color: Colors.deepPurple)),
-              ),
-              title: Text(item["name"]),
-              subtitle: Text("\$${item["price"].toStringAsFixed(2)}"),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove, color: Colors.red),
-                    onPressed: () => updateQuantity(index, -1),
-                  ),
-                  Text(item["quantity"].toString()),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Colors.green),
-                    onPressed: () => updateQuantity(index, 1),
-                  ),
-                ],
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF380230), Colors.grey.shade900],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
-          );
-        },
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(15),
-        color: Colors.white,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Total: \$${totalPrice.toStringAsFixed(2)}",
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Checkout not implemented")),
-                );
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
-              child: const Text("Checkout"),
+          ),
+          cartItems.isEmpty
+              ? Center(
+            child: Text(
+              "Your cart is empty",
+              style: GoogleFonts.lora(fontSize: 18, color: Colors.white70),
             ),
-          ],
-        ),
+          )
+              : Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount: cartItems.length,
+                  itemBuilder: (context, index) {
+                    final item = cartItems[index];
+                    return Card(
+                      margin: EdgeInsets.all(10),
+                      color: Colors.grey.shade900,
+                      child: ListTile(
+                        leading: Image.network(item['imageUrl'], width: 50, height: 50, fit: BoxFit.cover),
+                        title: Text(item['name'], style: GoogleFonts.lora(color: Colors.white)),
+                        subtitle: Text("₹${item['price']}", style: GoogleFonts.lora(color: Colors.greenAccent)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.remove, color: Colors.red),
+                              onPressed: () => updateQuantity(index, -1),
+                            ),
+                            Text("${item['quantity']}", style: GoogleFonts.lora(color: Colors.white)),
+                            IconButton(
+                              icon: Icon(Icons.add, color: Colors.green),
+                              onPressed: () => updateQuantity(index, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade900,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Total: ₹${getTotalPrice().toStringAsFixed(2)}",
+                      style: GoogleFonts.lora(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Proceeding to Checkout')),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFFEBB21D),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          "Checkout",
+                          style: GoogleFonts.lora(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

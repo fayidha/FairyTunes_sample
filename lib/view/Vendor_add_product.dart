@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dupepro/SuccessScreen.dart';
 import 'package:dupepro/model/Product_model.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 
 class AddProduct extends StatefulWidget {
@@ -44,9 +45,14 @@ class _AddProductState extends State<AddProduct> {
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _images.isNotEmpty) {
       try {
+        String uid = FirebaseAuth.instance.currentUser!.uid; // Get current user ID
+        String productId = ProductController().generateProductId(); // Generate unique product ID
+
         List<String> imageUrls = await _productController.uploadImages(_images);
 
         Product product = Product(
+          id: productId,
+          uid: uid,
           name: _nameController.text,
           category: _categoryController.text,
           company: _companyController.text,
@@ -58,7 +64,7 @@ class _AddProductState extends State<AddProduct> {
         await _productController.addProduct(product);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Product added successfully!')),
+          const SnackBar(content: Text('Product added successfully!')),
         );
 
         Navigator.pushReplacement(
@@ -72,7 +78,7 @@ class _AddProductState extends State<AddProduct> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all fields and add images.')),
+        const SnackBar(content: Text('Please fill all fields and add images.')),
       );
     }
   }
@@ -81,8 +87,8 @@ class _AddProductState extends State<AddProduct> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white), // Icon color
-        backgroundColor: Color(0xFF380230), // AppBar color
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: const Color(0xFF380230),
         title: const Text(
           "Add Product",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
@@ -90,7 +96,7 @@ class _AddProductState extends State<AddProduct> {
         centerTitle: true,
       ),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -100,7 +106,7 @@ class _AddProductState extends State<AddProduct> {
                 GestureDetector(
                   onTap: _pickImages,
                   child: Container(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(15),
@@ -112,7 +118,10 @@ class _AddProductState extends State<AddProduct> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.add_a_photo, size: 60, color: Colors.purple[700]),
-                          Text("Tap to add images", style: TextStyle(color: Colors.purple[700], fontWeight: FontWeight.w500))
+                          const Text(
+                            "Tap to add images",
+                            style: TextStyle(color: Colors.purple, fontWeight: FontWeight.w500),
+                          )
                         ],
                       ),
                     )
@@ -128,47 +137,47 @@ class _AddProductState extends State<AddProduct> {
                     ),
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: _nameController,
-                  decoration: InputDecoration(labelText: "Product Name", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Product Name", border: OutlineInputBorder()),
                   validator: (value) => value == null || value.isEmpty ? "Enter product name" : null,
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _categoryController,
-                  decoration: InputDecoration(labelText: "Category", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Category", border: OutlineInputBorder()),
                   validator: (value) => value == null || value.isEmpty ? "Enter category" : null,
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _companyController,
-                  decoration: InputDecoration(labelText: "Company Name", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Company Name", border: OutlineInputBorder()),
                   validator: (value) => value == null || value.isEmpty ? "Enter company name" : null,
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: InputDecoration(labelText: "Description", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Description", border: OutlineInputBorder()),
                   maxLines: 3,
                   validator: (value) => value == null || value.isEmpty ? "Enter product description" : null,
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _priceController,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: "Price (₹)", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Price (₹)", border: OutlineInputBorder()),
                   validator: (value) => value == null || value.isEmpty ? "Enter product price" : null,
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 ElevatedButton.icon(
                   onPressed: _submitForm,
-                  icon: Icon(Icons.add_circle, color: Colors.white), // Icon color
-                  label: Text("Add Product"),
+                  icon: const Icon(Icons.add_circle, color: Colors.white),
+                  label: const Text("Add Product"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF380230), // Button background color
+                    backgroundColor: const Color(0xFF380230),
                     foregroundColor: Colors.white,
-                    minimumSize: Size(double.infinity, 50),
+                    minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
