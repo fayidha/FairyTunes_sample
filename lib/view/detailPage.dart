@@ -17,6 +17,8 @@ class ProductDetail extends StatefulWidget {
 
 class _ProductDetailState extends State<ProductDetail> {
   int _currentImageIndex = 0;
+  String? _selectedColor;
+  String? _selectedSize;
 
   void _navigateToSellerPage() async {
     SellerController sellerController = SellerController();
@@ -45,6 +47,9 @@ class _ProductDetailState extends State<ProductDetail> {
 
   @override
   Widget build(BuildContext context) {
+    List<String> colors = widget.product.colors ?? [];
+    List<String> sizes = widget.product.sizes ?? [];
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Product Details", style: GoogleFonts.lora(color: Colors.white)),
@@ -69,6 +74,7 @@ class _ProductDetailState extends State<ProductDetail> {
           ),
           Column(
             children: [
+              // Carousel for images
               CarouselSlider(
                 options: CarouselOptions(
                   height: 260,
@@ -91,6 +97,7 @@ class _ProductDetailState extends State<ProductDetail> {
                   );
                 }).toList(),
               ),
+              // Image indicators
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
@@ -107,10 +114,11 @@ class _ProductDetailState extends State<ProductDetail> {
                   ),
                 ),
               ),
+              // Product details
               Expanded(
                 child: DraggableScrollableSheet(
-                  initialChildSize: 0.45,
-                  minChildSize: 0.45,
+                  initialChildSize: 0.5,
+                  minChildSize: 0.5,
                   maxChildSize: 0.9,
                   builder: (context, scrollController) {
                     return Container(
@@ -165,6 +173,58 @@ class _ProductDetailState extends State<ProductDetail> {
                               widget.product.description,
                               style: GoogleFonts.lora(fontSize: 16, color: Colors.white70),
                             ),
+                            SizedBox(height: 15),
+                            // Display colors
+                            Text(
+                              "Available Colors",
+                              style: GoogleFonts.lora(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            Wrap(
+                              spacing: 8,
+                              children: colors.map((color) {
+                                bool isSelected = _selectedColor == color;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedColor = color;
+                                    });
+                                  },
+                                  child: Chip(
+                                    label: Text(
+                                      color,
+                                      style: TextStyle(color: isSelected ? Colors.white : Colors.black),
+                                    ),
+                                    backgroundColor: isSelected ? Colors.purple : Colors.grey[300],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            SizedBox(height: 15),
+                            // Display sizes
+                            Text(
+                              "Available Sizes",
+                              style: GoogleFonts.lora(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            Wrap(
+                              spacing: 8,
+                              children: sizes.map((size) {
+                                bool isSelected = _selectedSize == size;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSize = size;
+                                    });
+                                  },
+                                  child: Chip(
+                                    label: Text(
+                                      size,
+                                      style: TextStyle(color: isSelected ? Colors.white : Colors.black),
+                                    ),
+                                    backgroundColor: isSelected ? Colors.purple : Colors.grey[300],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
                             SizedBox(height: 20),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -177,46 +237,38 @@ class _ProductDetailState extends State<ProductDetail> {
                                     color: Colors.greenAccent,
                                   ),
                                 ),
-                                Row(
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () {},
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFFEBB21D),
-                                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        "Buy Now",
-                                        style: GoogleFonts.lora(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
+                                Text(
+                                  "Quantity: ${widget.product.quantity}",
+                                  style: GoogleFonts.lora(fontSize: 16, color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 20),
+                            // Buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFFEBB21D),
+                                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                    SizedBox(width: 10),
-                                    ElevatedButton(
-                                      onPressed: _navigateToCart,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white,
-                                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        "Add to Cart",
-                                        style: GoogleFonts.lora(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
+                                  ),
+                                  child: Text("Buy Now", style: GoogleFonts.lora(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+                                ),
+                                ElevatedButton(
+                                  onPressed: _navigateToCart,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                  ],
+                                  ),
+                                  child: Text("Add to Cart", style: GoogleFonts.lora(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
                                 ),
                               ],
                             ),

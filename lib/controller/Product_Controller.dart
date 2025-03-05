@@ -47,7 +47,7 @@ class ProductController {
     }
   }
 
-  // Fetch products by vendor UID
+  // Fetch products by seller UID
   Future<List<Product>> getProductsByVendor(String uid) async {
     try {
       QuerySnapshot querySnapshot = await _firestore

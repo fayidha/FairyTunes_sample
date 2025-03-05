@@ -70,6 +70,7 @@ class _TeacherPageState extends State<TeacherPage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => TeacherProfilePage(
+                        teacherId: teacher.teacherId,  // Ensure you're passing teacher.id
                         name: teacher.name,
                         phone: teacher.phone,
                         address: teacher.address,
@@ -77,11 +78,12 @@ class _TeacherPageState extends State<TeacherPage> {
                         category: teacher.category,
                         email: teacher.email,
                         experience: teacher.experience,
-                        imageUrl: teacher.imageUrl, // Pass the imageUrl to the profile page
+                        imageUrl: teacher.imageUrl,
                       ),
                     ),
                   );
                 },
+
                 child: Card(
                   elevation: 4,
                   margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),

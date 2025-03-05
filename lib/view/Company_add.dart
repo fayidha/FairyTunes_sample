@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -18,44 +19,54 @@ class _CompanyAddState extends State<CompanyAdd> {
   XFile? _image; // Nullable type for image
 
   // Fields to store user data
-  late String _name;
-  late String _email;
-  late String _companyName;
-  late String _phone;
-  late String _address;
-  late String _productCategory;
+  String _name = "";
+  String _email = "";
+  String _companyName = "";
+  String _phone = "";
+  String _address = "";
+  String _productCategory = "";
 
   // Controller for Seller operations
   final SellerController _controller = SellerController();
 
   // Loading state flags
   bool _isLoading = false;
-  bool _isFetchingUserData = true; // Flag to track loading user data
-  bool _isEditing = false; // Flag to track if the user is editing
+  bool _isFetchingUserData = true;
+  bool _isEditing = false;
 
-  // Fetch user details from the session
+  // Fetch user and seller details
   Future<void> _fetchUserDetails() async {
     try {
       Map<String, dynamic>? userDetails = await Session.getUserDetails();
-      print("Fetched User Details: $userDetails"); // Debugging: print fetched details
-
       if (userDetails != null) {
         setState(() {
           _name = userDetails['name'] ?? 'Not Available';
           _email = userDetails['email'] ?? 'Not Available';
-          _companyName = userDetails['companyName'] ?? 'Not Available';
-          _phone = userDetails['phone'] ?? 'Not Available';
-          _address = userDetails['address'] ?? 'Not Available';
-          _productCategory = userDetails['productCategory'] ?? 'Not Available';
         });
       }
+      await _fetchSellerDetails(); // Fetch seller-specific details from Firestore
     } catch (e) {
       print("Error fetching user details: $e");
     }
+    setState(() => _isFetchingUserData = false);
+  }
 
-    setState(() {
-      _isFetchingUserData = false; // Stop loading once data is fetched
-    });
+  Future<void> _fetchSellerDetails() async {
+    try {
+      DocumentSnapshot sellerSnapshot =
+      await FirebaseFirestore.instance.collection('sellers').doc(_email).get();
+      if (sellerSnapshot.exists) {
+        Map<String, dynamic> sellerData = sellerSnapshot.data() as Map<String, dynamic>;
+        setState(() {
+          _companyName = sellerData['companyName'] ?? '';
+          _phone = sellerData['phone'] ?? '';
+          _address = sellerData['address'] ?? '';
+          _productCategory = sellerData['productCategory'] ?? '';
+        });
+      }
+    } catch (e) {
+      print("Error fetching seller details: $e");
+    }
   }
 
   // Method to pick an image from the gallery
@@ -96,6 +107,10 @@ class _CompanyAddState extends State<CompanyAdd> {
           SnackBar(content: Text("Error: $e")),
         );
       }
+    }
+    if (_companyName.isEmpty || _phone.isEmpty || _address.isEmpty || _productCategory.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Please fill all fields")));
+      return;
     }
   }
 

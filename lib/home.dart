@@ -1,7 +1,7 @@
+import 'package:dupepro/Teacher_dash.dart';
 import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
 import 'package:dupepro/seller_dash.dart';
-import 'package:dupepro/teachernotes_upload.dart';
 import 'package:dupepro/troups.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:dupepro/view/product.dart';
@@ -439,7 +439,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 30),
 
             ElevatedButton(onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherNotesPage()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherDashboard()));
             }, child: Text('Teacher add notes') ),
           ],
         )

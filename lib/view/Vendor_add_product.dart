@@ -1,10 +1,12 @@
-import 'package:dupepro/controller/Product_Controller.dart';
 import 'package:flutter/material.dart';
-import 'package:dupepro/SuccessScreen.dart';
-import 'package:dupepro/model/Product_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
+import 'package:dupepro/SuccessScreen.dart';
+import 'package:dupepro/controller/Product_Controller.dart';
+import 'package:dupepro/model/Product_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class AddProduct extends StatefulWidget {
   const AddProduct({super.key});
@@ -20,6 +22,9 @@ class _AddProductState extends State<AddProduct> {
   final _companyController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
+  final _colorsController = TextEditingController();
+  final _sizesController = TextEditingController();
+  final _quantityController = TextEditingController();
   List<File> _images = [];
   final ProductController _productController = ProductController();
 
@@ -39,14 +44,17 @@ class _AddProductState extends State<AddProduct> {
     _companyController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _colorsController.dispose();
+    _sizesController.dispose();
+    _quantityController.dispose();
     super.dispose();
   }
 
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _images.isNotEmpty) {
       try {
-        String uid = FirebaseAuth.instance.currentUser!.uid; // Get current user ID
-        String productId = ProductController().generateProductId(); // Generate unique product ID
+        String uid = FirebaseAuth.instance.currentUser!.uid;
+        String productId = _productController.generateProductId();
 
         List<String> imageUrls = await _productController.uploadImages(_images);
 
@@ -58,6 +66,9 @@ class _AddProductState extends State<AddProduct> {
           company: _companyController.text,
           description: _descriptionController.text,
           price: double.parse(_priceController.text),
+          colors: _colorsController.text.split(',').map((e) => e.trim()).toList(),
+          sizes: _sizesController.text.split(',').map((e) => e.trim()).toList(),
+          quantity: int.parse(_quantityController.text),
           imageUrls: imageUrls,
         );
 
@@ -152,22 +163,40 @@ class _AddProductState extends State<AddProduct> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _companyController,
-                  decoration: const InputDecoration(labelText: "Company Name", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Company", border: OutlineInputBorder()),
                   validator: (value) => value == null || value.isEmpty ? "Enter company name" : null,
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _descriptionController,
                   decoration: const InputDecoration(labelText: "Description", border: OutlineInputBorder()),
-                  maxLines: 3,
-                  validator: (value) => value == null || value.isEmpty ? "Enter product description" : null,
+                  validator: (value) => value == null || value.isEmpty ? "Enter description" : null,
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _priceController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Price (₹)", border: OutlineInputBorder()),
-                  validator: (value) => value == null || value.isEmpty ? "Enter product price" : null,
+                  decoration: const InputDecoration(labelText: "Price", border: OutlineInputBorder()),
+                  validator: (value) => value == null || value.isEmpty ? "Enter price" : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _colorsController,
+                  decoration: const InputDecoration(labelText: "Colors (comma separated)", border: OutlineInputBorder()),
+                  validator: (value) => value == null || value.isEmpty ? "Enter colors" : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _sizesController,
+                  decoration: const InputDecoration(labelText: "Sizes (comma separated)", border: OutlineInputBorder()),
+                  validator: (value) => value == null || value.isEmpty ? "Enter sizes" : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: "Quantity", border: OutlineInputBorder()),
+                  validator: (value) => value == null || value.isEmpty ? "Enter quantity" : null,
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(

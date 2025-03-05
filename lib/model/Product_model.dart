@@ -9,6 +9,9 @@ class Product {
   String description;
   double price;
   List<String> imageUrls;
+  List<String> colors;
+  List<String> sizes;
+  int quantity;
   Timestamp? createdAt;
 
   Product({
@@ -20,6 +23,9 @@ class Product {
     required this.description,
     required this.price,
     required this.imageUrls,
+    required this.colors,
+    required this.sizes,
+    required this.quantity,
     this.createdAt,
   });
 
@@ -34,6 +40,9 @@ class Product {
       'description': description,
       'price': price,
       'imageUrls': imageUrls,
+      'colors': colors,
+      'sizes': sizes,
+      'quantity': quantity,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
     };
   }
@@ -49,6 +58,9 @@ class Product {
       description: map['description'] ?? '',
       price: (map['price'] is int) ? (map['price'] as int).toDouble() : (map['price'] as double? ?? 0.0),
       imageUrls: List<String>.from(map['imageUrls'] ?? []),
+      colors: List<String>.from(map['colors'] ?? []),
+      sizes: List<String>.from(map['sizes'] ?? []),
+      quantity: map['quantity'] ?? 0,
       createdAt: map['createdAt'] != null ? map['createdAt'] as Timestamp : null,
     );
   }
