@@ -1,8 +1,11 @@
-import 'package:dupepro/controller/session.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/model/artist_model.dart';
 import 'package:dupepro/controller/artist_controller.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class CreateGroupPage extends StatefulWidget {
   @override
@@ -20,6 +23,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   bool _isLoading = true;
   List<String> artistNames = [];
   List<String> artistEmails = [];
+  List<File> _selectedImages = []; // List to store selected images
 
   @override
   void initState() {
@@ -49,16 +53,58 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     });
   }
 
+  // Method to pick multiple images
+  Future<void> _pickImages() async {
+    final ImagePicker _picker = ImagePicker();
+    final List<XFile>? pickedFiles = await _picker.pickMultiImage();
+
+    if (pickedFiles != null) {
+      setState(() {
+        _selectedImages = pickedFiles.map((file) => File(file.path)).toList();
+      });
+    }
+  }
+
+  // Method to remove an image
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
+  // Method to upload images to Firebase Storage
+  Future<List<String>> _uploadImages(String groupId) async {
+    List<String> imageUrls = [];
+    final FirebaseStorage _storage = FirebaseStorage.instance;
+
+    for (var image in _selectedImages) {
+      String fileName = 'groups/$groupId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      Reference storageRef = _storage.ref().child(fileName);
+      await storageRef.putFile(image);
+      String downloadUrl = await storageRef.getDownloadURL();
+      imageUrls.add(downloadUrl);
+    }
+
+    return imageUrls;
+  }
+
   Future<void> _createGroup() async {
     if (_formKey.currentState!.validate()) {
       String groupId = FirebaseFirestore.instance.collection('groups').doc().id;
 
-      // Create the group with an empty members list
+      // Upload images and get URLs
+      List<String> imageUrls = await _uploadImages(groupId);
+
+      // Create a list of member UIDs from selected artists
+      List<String> memberUids = _selectedArtists.map((artist) => artist.uid).toList();
+
+      // Create the group with image URLs and members list
       await FirebaseFirestore.instance.collection('groups').doc(groupId).set({
         'groupId': groupId,
         'groupName': _groupNameController.text,
         'groupDescription': _groupDescriptionController.text,
-        'members': [], // Members will be added here when they accept
+        'images': imageUrls, // Add image URLs here
+        'members': memberUids, // Add member UIDs here
         'createdAt': Timestamp.now(),
       });
 
@@ -90,6 +136,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       _groupDescriptionController.clear();
       setState(() {
         _selectedArtists.clear();
+        _selectedImages.clear();
       });
     }
   }
@@ -97,24 +144,28 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Group')),
-      body: Padding(
+      appBar: AppBar(
+        title: Text('Create Group'),
+        backgroundColor: Color(0xFF380230),
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              // Group Image Placeholder
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: AssetImage('assets/default_group_image.png'),
-              ),
-              SizedBox(height: 16),
+              _buildImageSection(), // Image section with image picker
+              SizedBox(height: 24),
 
               // Group Name Field
               TextFormField(
                 controller: _groupNameController,
-                decoration: InputDecoration(labelText: 'Group Name'),
+                decoration: InputDecoration(
+                  labelText: 'Group Name',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.8),
+                ),
                 validator: (value) => value!.isEmpty ? 'Enter a group name' : null,
               ),
               SizedBox(height: 16),
@@ -122,7 +173,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               // Group Description Field
               TextFormField(
                 controller: _groupDescriptionController,
-                decoration: InputDecoration(labelText: 'Group Description'),
+                decoration: InputDecoration(
+                  labelText: 'Group Description',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.8),
+                ),
                 validator: (value) => value!.isEmpty ? 'Enter a group description' : null,
               ),
               SizedBox(height: 16),
@@ -130,44 +186,68 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               // Add Artist Button
               ElevatedButton(
                 onPressed: _showArtistSelectionDialog,
-                child: Text('Add Artist'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF6A0D54),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text('Add Artist', style: TextStyle(fontSize: 16)),
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 24),
 
               // Selected Artists List
-              Expanded(
-                child: _selectedArtists.isEmpty
-                    ? Center(child: Text('No artists added yet'))
-                    : ListView.builder(
-                  itemCount: _selectedArtists.length,
-                  itemBuilder: (context, index) {
-                    final artist = _selectedArtists[index];
-                    return Card(
-                      child: ListTile(
-                        title: Text(artistNames[index]),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                          //  Text("Artist ID: ${artist.id}"),
-                            Text("Type: ${artist.artistType}"),
-                            Text("Bio: ${artist.bio}"),
-                            Text("Email: ${artistEmails[index]}"),
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(Icons.remove_circle, color: Colors.red),
-                          onPressed: () => _removeArtistFromGroup(artist),
-                        ),
+              Text('Selected Artists', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              _selectedArtists.isEmpty
+                  ? Center(child: Text('No artists added yet', style: TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: _selectedArtists.length,
+                itemBuilder: (context, index) {
+                  final artist = _selectedArtists[index];
+                  return Card(
+                    elevation: 4,
+                    margin: EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      title: Text(artistNames[index], style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Type: ${artist.artistType}"),
+                          Text("Bio: ${artist.bio}"),
+                          Text("Email: ${artistEmails[index]}"),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                      trailing: IconButton(
+                        icon: Icon(Icons.remove_circle, color: Colors.red),
+                        onPressed: () => _removeArtistFromGroup(artist),
+                      ),
+                    ),
+                  );
+                },
               ),
+
+              SizedBox(height: 24),
 
               // Create Group Button
               ElevatedButton(
                 onPressed: _createGroup,
-                child: Text('Create Group'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF6A0D54),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text('Create Group', style: TextStyle(fontSize: 18)),
               ),
             ],
           ),
@@ -175,9 +255,79 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       ),
     );
   }
+
+  Widget _buildImageSection() {
+    return GestureDetector(
+      onTap: _pickImages, // Open image picker when tapped
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF380230), Color(0xFF6A0D54)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            if (_selectedImages.isEmpty)
+              Icon(Icons.add_a_photo, size: 40, color: Colors.white),
+            if (_selectedImages.isNotEmpty)
+              GridView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: _selectedImages.length,
+                itemBuilder: (context, index) {
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          _selectedImages[index],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: IconButton(
+                          icon: Icon(Icons.remove_circle, color: Colors.red),
+                          onPressed: () => _removeImage(index),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            if (_selectedImages.isNotEmpty)
+              SizedBox(height: 8),
+            if (_selectedImages.isNotEmpty)
+              Text(
+                'Tap to add more images',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showArtistSelectionDialog() async {
-
-
     // Fetch user details for all artists before showing the dialog
     for (var artist in _allArtists) {
       var userData = await Session.getUserDetailsByUid(artist.uid);
@@ -194,9 +344,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Select Artists'),
+          title: Text('Select Artists', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           content: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator())
               : SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -204,24 +354,30 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               itemCount: _allArtists.length,
               itemBuilder: (context, index) {
                 final artist = _allArtists[index];
-
-                return ListTile(
-                  title: Text(artistNames[index]),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Type: ${artist.artistType}"),
-                      Text("Bio: ${artist.bio}"),
-                      Text("Email: ${artistEmails[index]}"),
-                    ],
+                return Card(
+                  elevation: 2,
+                  margin: EdgeInsets.symmetric(vertical: 4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  trailing: _selectedArtists.contains(artist)
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : null,
-                  onTap: () {
-                    _addArtistToGroup(artist);
-                    Navigator.pop(context);
-                  },
+                  child: ListTile(
+                    title: Text(artistNames[index], style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Type: ${artist.artistType}"),
+                        Text("Bio: ${artist.bio}"),
+                        Text("Email: ${artistEmails[index]}"),
+                      ],
+                    ),
+                    trailing: _selectedArtists.contains(artist)
+                        ? Icon(Icons.check_circle, color: Colors.green)
+                        : null,
+                    onTap: () {
+                      _addArtistToGroup(artist);
+                      Navigator.pop(context);
+                    },
+                  ),
                 );
               },
             ),
@@ -230,8 +386,4 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       },
     );
   }
-
-
-
-
 }

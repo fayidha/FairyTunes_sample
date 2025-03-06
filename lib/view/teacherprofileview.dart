@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class TeacherProfilePage extends StatelessWidget {
   final String teacherId;
@@ -26,18 +29,22 @@ class TeacherProfilePage extends StatelessWidget {
     this.imageUrl,
   });
 
-  // Function to Open PDF in Browser
-  void _viewPdf(String? pdfUrl) async {
-    if (pdfUrl == null || pdfUrl.isEmpty) {
-      debugPrint("No PDF URL available");
-      return;
-    }
+  // Function to Download and Open PDF
+  Future<void> _openPdf(String pdfUrl) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/${pdfUrl.split('/').last}';
+      final file = File(filePath);
 
-    final Uri url = Uri.parse(pdfUrl);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      debugPrint("Could not open PDF");
+      if (!await file.exists()) {
+        debugPrint("Downloading PDF...");
+        await Dio().download(pdfUrl, filePath);
+      }
+
+      OpenFile.open(filePath);
+    } catch (e) {
+      debugPrint("Error opening PDF: $e");
+      debugPrint("PDF URL: $pdfUrl");
     }
   }
 
@@ -117,7 +124,7 @@ class TeacherProfilePage extends StatelessWidget {
 
                     final String noteName = data['noteName'] ?? 'Untitled Note';
                     final String description = data['description'] ?? 'No description available';
-                    final String? pdfUrl = data['pdfUrl']; // Fetch the PDF URL correctly
+                    final String? pdfUrl = data['fileUrl'];
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -129,28 +136,16 @@ class TeacherProfilePage extends StatelessWidget {
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                         subtitle: Text(description),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove_red_eye, color: Colors.blueGrey),
-                              onPressed: () {
-                                if (pdfUrl != null && pdfUrl.isNotEmpty) {
-                                  _viewPdf(pdfUrl);
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("No PDF available for this note."))
-                                  );
-                                }
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.download, color: Colors.blueGrey),
-                              onPressed: () {
-                                // Implement Download functionality
-                              },
-                            ),
-                          ],
+                        trailing: IconButton(
+                          icon: const Icon(Icons.picture_as_pdf, color: Colors.blueGrey),
+                          onPressed: () {
+                            if (pdfUrl != null && pdfUrl.isNotEmpty) {
+                              _openPdf(pdfUrl);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("No PDF available for this note.")));
+                            }
+                          },
                         ),
                       ),
                     );

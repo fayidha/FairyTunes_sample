@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
 
 class TeacherDashboard extends StatefulWidget {
   @override
@@ -31,9 +32,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     User? user = _auth.currentUser;
     if (user == null) return;
 
-    for (var note in selectedNotes) {
-      File file = File(note['file'].path!);
-      String fileName = note['file'].name;
+    for (int i = 0; i < selectedNotes.length; i++) {
+      File file = File(selectedNotes[i]['file'].path!);
+      String fileName = selectedNotes[i]['file'].name;
       String noteId = _firestore.collection("notes").doc().id;
 
       TaskSnapshot uploadTask = await _storage.ref('notes/${user.uid}/$fileName').putFile(file);
@@ -44,7 +45,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         "teacherId": user.uid,
         "noteName": fileName,
         "fileUrl": fileUrl,
-        "description": note['description'],
+        "description": descriptionControllers[i].text,
         "timestamp": FieldValue.serverTimestamp(),
       });
     }
@@ -95,12 +96,24 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           ),
         ],
       ),
-    );
+    ) ?? false;
 
     if (confirmDelete) {
       await _firestore.collection("notes").doc(noteId).delete();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Note deleted successfully")));
     }
+  }
+
+  Future<void> editDescription(String noteId, String newDescription) async {
+    await _firestore.collection("notes").doc(noteId).update({"description": newDescription});
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Description updated successfully")));
+  }
+
+  void viewPDF(String filePath) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PDFViewer(filePath: filePath)),
+    );
   }
 
   @override
@@ -157,19 +170,30 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             label: Text("Select PDF Notes", style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
           ),
+          Column(
+            children: List.generate(selectedNotes.length, (index) {
+              return Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => viewPDF(selectedNotes[index]['file'].path!),
+                    icon: Icon(Icons.picture_as_pdf, color: Colors.white),
+                    label: Text("View PDF", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
+                  ),
+                  TextField(
+                    controller: descriptionControllers[index],
+                    decoration: InputDecoration(labelText: "Description"),
+                  ),
+                  SizedBox(height: 8),
+                ],
+              );
+            }),
+          ),
           if (selectedNotes.isNotEmpty)
-            Column(
-              children: selectedNotes.map((note) => ListTile(
-                title: Text(note['file'].name),
-                trailing: IconButton(icon: Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => selectedNotes.remove(note))),
-              )).toList(),
-            ),
-          if (selectedNotes.isNotEmpty)
-            ElevatedButton.icon(
+            ElevatedButton(
               onPressed: uploadNotes,
-              icon: Icon(Icons.cloud_upload, color: Colors.white),
-              label: Text("Upload Notes", style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
+              child: Text("Upload Notes"),
+              style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230), foregroundColor: Colors.white),
             ),
         ],
       ),
@@ -177,24 +201,91 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 
   Widget _buildViewNotesSection() {
-    User? user = _auth.currentUser;
-    if (user == null) return Container();
-
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection("notes").where("teacherId", isEqualTo: user.uid).snapshots(),
+      stream: _firestore.collection("notes").snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
         final notes = snapshot.data!.docs;
 
         return Column(
-          children: notes.map((note) => Card(
-            child: ListTile(
-              title: Text(note['noteName']),
-              trailing: IconButton(icon: Icon(Icons.delete, color: Colors.red), onPressed: () => deleteNote(note.id)),
-            ),
-          )).toList(),
+          children: notes.map((note) {
+            TextEditingController editController = TextEditingController(text: note['description']);
+            bool isEditing = false;
+
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return Card(
+                  child: ListTile(
+                    title: Text(note['noteName']),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!isEditing)
+                          Text(note['description']),
+                        if (isEditing)
+                          TextField(
+                            controller: editController,
+                            decoration: InputDecoration(labelText: "Edit Description"),
+                          ),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isEditing)
+                          IconButton(
+                            icon: Icon(Icons.save),
+                            onPressed: () async {
+                              await editDescription(note.id, editController.text);
+                              setState(() {
+                                isEditing = false;
+                              });
+                            },
+                          ),
+                        if (!isEditing)
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () {
+                              setState(() {
+                                isEditing = true;
+                              });
+                            },
+                          ),
+                        IconButton(
+                          icon: Icon(Icons.remove_red_eye),
+                          onPressed: () => launch(note['fileUrl']),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => deleteNote(note.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }).toList(),
         );
       },
+    );
+  }
+}
+
+
+    class PDFViewer extends StatelessWidget {
+  final String filePath;
+
+  PDFViewer({required this.filePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('View PDF'),
+        backgroundColor: Color(0xFF380230),
+      ),
+      body: PDFView(filePath: filePath),
     );
   }
 }

@@ -48,6 +48,10 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_blurhash: ^0.8.2
   url_launcher: ^6.3.1
+  flutter_pdfview: ^1.4.0
+  webview_flutter: ^4.10.0
+  open_file: ^3.5.10
+  dio: ^5.8.0+1
 
 dev_dependencies:
   flutter_test:
