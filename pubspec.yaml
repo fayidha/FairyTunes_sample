@@ -53,6 +53,7 @@ dependencies:
   open_file: ^3.5.10
   dio: ^5.8.0+1
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -92,6 +93,8 @@ flutter:
      - asset/img1.jpg
      - asset/animation1.json
      - asset/Animation - 1738836659721.json
+     - asset/chat_page.jpg
+     - asset/chat_page2.jpg
 
   #   - images/a_dot_ham.jpeg
 

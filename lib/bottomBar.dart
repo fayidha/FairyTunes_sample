@@ -20,7 +20,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
     HomePage(),
     History(),
     CartPage(),
-    Chatlist(),
+    ChatList(),
     ProfilePage(),
   ];
 

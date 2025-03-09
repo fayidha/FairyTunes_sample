@@ -4,24 +4,35 @@ import 'package:dupepro/model/cart_model.dart';
 class CartController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> saveCart(String userId, List<CartItem> cartItems) async {
-    await _firestore.collection('carts').doc(userId).set({
-      'items': cartItems.map((item) => item.toMap()).toList(),
-      'totalPrice': cartItems.fold(0.0, (double sum, CartItem item) => sum + (item.price * item.quantity)),
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-  }
-
-  Future<List<CartItem>> loadCart(String userId) async {
-    DocumentSnapshot cartSnapshot = await _firestore.collection('carts').doc(userId).get();
-    if (cartSnapshot.exists) {
-      List<dynamic> items = cartSnapshot['items'];
-      return items.map((item) => CartItem.fromMap(item)).toList();
+  Future<void> addToCart(CartItem item) async {
+    try {
+      await _firestore.collection('cart').doc(item.id).set(item.toMap());
+    } catch (e) {
+      print("Error adding to cart: $e");
     }
-    return [];
   }
 
-  Future<void> clearCart(String userId) async {
-    await _firestore.collection('carts').doc(userId).delete();
+  Future<List<CartItem>> fetchCartItems() async {
+    try {
+      QuerySnapshot snapshot = await _firestore.collection('cart').get();
+      return snapshot.docs
+          .map((doc) => CartItem.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+    } catch (e) {
+      print("Error fetching cart items: $e");
+      return [];
+    }
+  }
+
+  Future<void> updateQuantity(String id, int quantity) async {
+    if (quantity > 0) {
+      await _firestore.collection('cart').doc(id).update({'quantity': quantity});
+    } else {
+      await removeItem(id);
+    }
+  }
+
+  Future<void> removeItem(String id) async {
+    await _firestore.collection('cart').doc(id).delete();
   }
 }

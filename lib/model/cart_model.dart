@@ -1,9 +1,9 @@
 class CartItem {
-  final String id;
-  final String name;
-  final double price;
+  String id;
+  String name;
+  double price;
   int quantity;
-  final String imageUrl;
+  String imageUrl;
 
   CartItem({
     required this.id,
@@ -13,7 +13,6 @@ class CartItem {
     required this.imageUrl,
   });
 
-  // Convert to Map for Firebase
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -24,12 +23,11 @@ class CartItem {
     };
   }
 
-  // Create a CartItem from a Firebase Map
-  factory CartItem.fromMap(Map<String, dynamic> map) {
+  factory CartItem.fromMap(Map<String, dynamic> map, String id) {
     return CartItem(
-      id: map['id'],
+      id: id,
       name: map['name'],
-      price: map['price'],
+      price: map['price'].toDouble(),
       quantity: map['quantity'],
       imageUrl: map['imageUrl'],
     );

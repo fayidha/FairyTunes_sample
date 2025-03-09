@@ -2,106 +2,91 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class ManageRequestsPage extends StatefulWidget {
+class NotificationsPage extends StatefulWidget {
   @override
-  _ManageRequestsPageState createState() => _ManageRequestsPageState();
+  _NotificationsPageState createState() => _NotificationsPageState();
 }
 
-class _ManageRequestsPageState extends State<ManageRequestsPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String? userId;
-
-  @override
-  void initState() {
-    super.initState();
-    userId = _auth.currentUser?.uid;
-  }
-
-  Future<void> _updateRequestStatus(String groupId, String artistUid, String status) async {
-    try {
-      DocumentReference requestRef = _firestore.collection('requests').doc(groupId);
-      DocumentSnapshot requestSnapshot = await requestRef.get();
-      if (!requestSnapshot.exists) return;
-
-      List<dynamic> artists = requestSnapshot['artists'];
-      for (var artist in artists) {
-        if (artist['artistUid'] == artistUid) {
-          artist['status'] = status;
-        }
-      }
-
-      await requestRef.update({'artists': artists});
-
-      if (status == 'accepted') {
-        // Add artist to the group members list
-        DocumentReference groupRef = _firestore.collection('groups').doc(groupId);
-        await groupRef.update({
-          'members': FieldValue.arrayUnion([artistUid])
-        });
-
-        // Update artist's collection status
-        await _firestore.collection('artists').doc(artistUid).update({
-          'status': 'joined'
-        });
-      } else {
-        // Remove artist from the group's request list
-        await requestRef.update({
-          'artists': artists.where((artist) => artist['artistUid'] != artistUid).toList()
-        });
-      }
-    } catch (e) {
-      print("Error updating request status: $e");
-    }
-  }
+class _NotificationsPageState extends State<NotificationsPage> {
+  final User? currentUser = FirebaseAuth.instance.currentUser;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Manage Requests'),
+        title: Text('Group Invitations'),
         backgroundColor: Color(0xFF380230),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('requests').snapshots(),
+        stream: FirebaseFirestore.instance.collection('requests').snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
 
-          var requests = snapshot.data!.docs.where((doc) {
-            var artists = doc['artists'] as List<dynamic>;
-            return artists.any((artist) => artist['artistUid'] == userId && artist['status'] == 'pending');
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text("No invitations available."));
+          }
+
+          // **Filter requests where the current user is invited**
+          var userRequests = snapshot.data!.docs.where((doc) {
+            var data = doc.data() as Map<String, dynamic>?;
+
+            if (data == null || !data.containsKey('artists') || data['artists'] is! List) {
+              return false; // Ignore if artists field is missing or invalid
+            }
+
+            var artists = data['artists'] as List<dynamic>;
+            return artists.any((artist) =>
+            artist is Map<String, dynamic> &&
+                artist['artistUid'] == currentUser?.uid &&
+                artist['status'] == 'pending');
           }).toList();
 
-          if (requests.isEmpty) {
-            return Center(child: Text('No pending requests'));
+          if (userRequests.isEmpty) {
+            return Center(child: Text("No invitations available."));
           }
 
           return ListView.builder(
-            itemCount: requests.length,
+            itemCount: userRequests.length,
             itemBuilder: (context, index) {
-              var request = requests[index];
-              var groupId = request['groupId'];
-              var groupName = request['groupName'];
-              var artistData = (request['artists'] as List<dynamic>).firstWhere((artist) => artist['artistUid'] == userId);
+              var request = userRequests[index];
+              var data = request.data() as Map<String, dynamic>?;
+
+              if (data == null || !data.containsKey('artists')) {
+                return SizedBox.shrink(); // Skip if data is missing
+              }
+
+              var groupId = data['groupId'] ?? "Unknown Group";
+              var groupName = data['groupName'] ?? "Unnamed Group";
+
+              // Find the current user's artist data
+              var artistData = (data['artists'] as List).firstWhere(
+                    (artist) =>
+                artist is Map<String, dynamic> &&
+                    artist['artistUid'] == currentUser?.uid,
+                orElse: () => null,
+              );
+
+              if (artistData == null || artistData is! Map<String, dynamic>) {
+                return SizedBox.shrink(); // Skip if no valid artist data
+              }
 
               return Card(
-                elevation: 4,
                 margin: EdgeInsets.all(8),
                 child: ListTile(
-                  title: Text('Group: $groupName', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Status: ${artistData['status']}'),
+                  title: Text(groupName, style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("Status: ${artistData['status']}"),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: Icon(Icons.check_circle, color: Colors.green),
-                        onPressed: () => _updateRequestStatus(groupId, userId!, 'accepted'),
+                        onPressed: () => _acceptRequest(groupId, request.id),
                       ),
                       IconButton(
                         icon: Icon(Icons.cancel, color: Colors.red),
-                        onPressed: () => _updateRequestStatus(groupId, userId!, 'rejected'),
+                        onPressed: () => _rejectRequest(groupId, request.id),
                       ),
                     ],
                   ),
@@ -112,5 +97,44 @@ class _ManageRequestsPageState extends State<ManageRequestsPage> {
         },
       ),
     );
+  }
+
+  Future<void> _acceptRequest(String groupId, String requestId) async {
+    await FirebaseFirestore.instance.collection('groups').doc(groupId).update({
+      'members': FieldValue.arrayUnion([currentUser!.uid]),
+    });
+
+    await _updateRequestStatus(requestId, 'accepted');
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Joined the group!")));
+  }
+
+  Future<void> _rejectRequest(String groupId, String requestId) async {
+    await FirebaseFirestore.instance.collection('groups').doc(groupId).update({
+      'members': FieldValue.arrayRemove([currentUser!.uid]),
+    });
+
+    await _updateRequestStatus(requestId, 'rejected');
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Request rejected.")));
+  }
+
+  Future<void> _updateRequestStatus(String requestId, String status) async {
+    DocumentReference requestRef = FirebaseFirestore.instance.collection('requests').doc(requestId);
+
+    var requestData = await requestRef.get();
+    if (requestData.exists) {
+      Map<String, dynamic>? data = requestData.data() as Map<String, dynamic>?;
+
+      if (data == null || !data.containsKey('artists')) return;
+
+      List<dynamic> artists = data['artists'];
+      for (var artist in artists) {
+        if (artist is Map<String, dynamic> && artist['artistUid'] == currentUser!.uid) {
+          artist['status'] = status;
+        }
+      }
+      await requestRef.update({'artists': artists});
+    }
   }
 }

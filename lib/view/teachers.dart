@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dupepro/chatlist.dart';
 import 'package:flutter/material.dart';
 import 'package:dupepro/model/teacher_model.dart';
 import 'package:dupepro/chat.dart';
@@ -155,7 +156,8 @@ class _TeacherPageState extends State<TeacherPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ChatPage(teacherName: teacher.name),
+                                  builder: (context) => ChatScreen(teacher.teacherId, // Pass the teacher's ID
+                                    teacher.name, ),
                                 ),
                               );
                             },

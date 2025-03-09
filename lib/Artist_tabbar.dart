@@ -52,7 +52,7 @@ class _ArtistTabState extends State<ArtistTab> {
             : TabBarView(
           children: [
             ArtistProfile(uid: uuid!),
-            ManageRequestsPage(),
+            NotificationsPage(),
           ],
         ),
       ),

@@ -1,5 +1,7 @@
+import 'package:dupepro/model/cart_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:dupepro/controller/cart_controller.dart';
 
 class CartPage extends StatefulWidget {
   @override
@@ -7,32 +9,29 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
-  List<Map<String, dynamic>> cartItems = [
-    {
-      "name": "Product 1",
-      "price": 500,
-      "quantity": 1,
-      "imageUrl": "https://via.placeholder.com/150"
-    },
-    {
-      "name": "Product 2",
-      "price": 1200,
-      "quantity": 2,
-      "imageUrl": "https://via.placeholder.com/150"
-    },
-  ];
+  final CartController _cartController = CartController();
+  List<CartItem> cartItems = [];
 
-  double getTotalPrice() {
-    return cartItems.fold(0, (sum, item) => sum + (item['price'] * item['quantity']));
+  @override
+  void initState() {
+    super.initState();
+    _loadCartItems();
   }
 
-  void updateQuantity(int index, int change) {
+  Future<void> _loadCartItems() async {
+    List<CartItem> items = await _cartController.fetchCartItems();
     setState(() {
-      cartItems[index]['quantity'] += change;
-      if (cartItems[index]['quantity'] <= 0) {
-        cartItems.removeAt(index);
-      }
+      cartItems = items;
     });
+  }
+
+  double getTotalPrice() {
+    return cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
+  }
+
+  void updateQuantity(String id, int newQuantity) async {
+    await _cartController.updateQuantity(id, newQuantity);
+    _loadCartItems();
   }
 
   @override
@@ -71,20 +70,20 @@ class _CartPageState extends State<CartPage> {
                       margin: EdgeInsets.all(10),
                       color: Colors.grey.shade900,
                       child: ListTile(
-                        leading: Image.network(item['imageUrl'], width: 50, height: 50, fit: BoxFit.cover),
-                        title: Text(item['name'], style: GoogleFonts.lora(color: Colors.white)),
-                        subtitle: Text("₹${item['price']}", style: GoogleFonts.lora(color: Colors.greenAccent)),
+                        leading: Image.network(item.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
+                        title: Text(item.name, style: GoogleFonts.lora(color: Colors.white)),
+                        subtitle: Text("₹${item.price}", style: GoogleFonts.lora(color: Colors.greenAccent)),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
                               icon: Icon(Icons.remove, color: Colors.red),
-                              onPressed: () => updateQuantity(index, -1),
+                              onPressed: () => updateQuantity(item.id, item.quantity - 1),
                             ),
-                            Text("${item['quantity']}", style: GoogleFonts.lora(color: Colors.white)),
+                            Text("${item.quantity}", style: GoogleFonts.lora(color: Colors.white)),
                             IconButton(
                               icon: Icon(Icons.add, color: Colors.green),
-                              onPressed: () => updateQuantity(index, 1),
+                              onPressed: () => updateQuantity(item.id, item.quantity + 1),
                             ),
                           ],
                         ),

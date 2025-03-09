@@ -115,6 +115,49 @@ class _ProductDetailState extends State<ProductDetail> {
                 ),
               ),
               // Product details
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.product.name,
+                      style: GoogleFonts.lora(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Category: ${widget.product.category}",
+                          style: GoogleFonts.lora(fontSize: 14, color: Colors.white70),
+                        ),
+                        TextButton(
+                          onPressed: _navigateToSellerPage,
+                          child: Text(
+                            "Brand: ${widget.product.company}",
+                            style: GoogleFonts.lora(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFEBB21D),
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      widget.product.description,
+                      style: GoogleFonts.lora(fontSize: 16, color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
               Expanded(
                 child: DraggableScrollableSheet(
                   initialChildSize: 0.5,
@@ -138,42 +181,6 @@ class _ProductDetailState extends State<ProductDetail> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              widget.product.name,
-                              style: GoogleFonts.lora(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "Category: ${widget.product.category}",
-                                  style: GoogleFonts.lora(fontSize: 14, color: Colors.white70),
-                                ),
-                                TextButton(
-                                  onPressed: _navigateToSellerPage,
-                                  child: Text(
-                                    "Brand: ${widget.product.company}",
-                                    style: GoogleFonts.lora(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFFEBB21D),
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              widget.product.description,
-                              style: GoogleFonts.lora(fontSize: 16, color: Colors.white70),
-                            ),
-                            SizedBox(height: 15),
                             // Display colors
                             Text(
                               "Available Colors",
