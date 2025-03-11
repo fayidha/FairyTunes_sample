@@ -1,107 +1,31 @@
+import 'package:dupepro/view/Advertisements_Add.dart';
+import 'package:dupepro/view/ManageProducts.dart';
 import 'package:dupepro/view/Vendor_add_product.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SellerDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Gradient Header
-            _buildGradientHeader(),
-            SizedBox(height: 20),
-
-            // Sales Stats Cards
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildDashboardCard("Total Sales", "1,200", Icons.shopping_cart),
-                _buildDashboardCard("Orders", "340", Icons.receipt),
-                _buildDashboardCard("Revenue", "₹12,500", Icons.currency_rupee),
-              ],
-            ),
-            SizedBox(height: 20),
-
-            // Add Product & View Orders Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildGradientButton("Add Product", Icons.add, () {
-                 Navigator.push(context, MaterialPageRoute(builder:  (context) => AddProduct(),)); // Navigate to Add Product Page
-                }),
-                _buildGradientButton("Recent Orders", Icons.history, () {
-                  _showRecentOrdersDialog(context);
-                }),
-              ],
-            ),
-            SizedBox(height: 20),
-
-            // Best Selling Products
-            Text(
-              "Best Selling Products",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF380230)),
-            ),
-            SizedBox(height: 10),
-
-            _buildProductItem("Music Album", "₹799", "asset/music.jpg"),
-            _buildProductItem("Wireless Headphones", "₹4,999", "asset/music.jpg"),
-            _buildProductItem("Gaming Mouse", "₹2,499", "asset/music.jpg"),
-            _buildProductItem("Mechanical Keyboard", "₹5,999", "asset/music.jpg"),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 🔥 Gradient Header
-  Widget _buildGradientHeader() {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 50, horizontal: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF380230), Color(0xFF6A0D54)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(50),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            " Welcome Seller",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          SizedBox(height: 2),
-          Text(
-            "Manage your store effectively",
-            style: TextStyle(fontSize: 14, color: Colors.white70),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 📊 Dashboard Cards
-  Widget _buildDashboardCard(String title, String value, IconData icon) {
-    return Expanded(
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 4,
-        color: Color(0xFF380230).withOpacity(0.15),
+      backgroundColor: Color(0xFFF3F4F6),
+      body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 32, color: Color(0xFF380230)),
-              SizedBox(height: 10),
-              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF380230))),
-              SizedBox(height: 5),
-              Text(title, style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+              _buildBackButton(context),
+              SizedBox(height: 20),
+              _buildGradientHeader(),
+              SizedBox(height: 20),
+              Expanded(child: _buildDashboardGrid(context)),
+              SizedBox(height: 20),
+              _buildGradientButton("Add Product", Icons.add, () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AddProduct()));
+              }),
+              SizedBox(height: 20),
+              _buildAdvertisementSection(context),
             ],
           ),
         ),
@@ -109,46 +33,133 @@ class SellerDashboard extends StatelessWidget {
     );
   }
 
-  // 🎨 Gradient Button
-  Widget _buildGradientButton(String text, IconData icon, VoidCallback onPressed) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(text),
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-        textStyle: TextStyle(fontSize: 16),
-        backgroundColor: Color(0xFF380230),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  // 🛍️ Best Selling Products
-  Widget _buildProductItem(String name, String price, String imagePath) {
-    return Card(
-      elevation: 8,
-      margin: EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: imagePath.startsWith("http")
-              ? Image.network(imagePath, width: 50, height: 50, fit: BoxFit.cover)
-              : Image.asset(imagePath, width: 50, height: 50, fit: BoxFit.cover),
+  Widget _buildBackButton(BuildContext context) {
+    return Row(
+      children: [
+        IconButton(
+          icon: Icon(Icons.arrow_back, color: Color(0xFF6A0D54)),
+          onPressed: () => Navigator.pop(context),
         ),
-        title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF380230))),
-        trailing: Text(price, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
+        Text("Seller Dashboard", style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF6A0D54))),
+      ],
+    );
+  }
+
+  Widget _buildGradientHeader() {
+    return Container(
+      padding: EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF6A0D54), Color(0xFF380230)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Welcome Seller", style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+          SizedBox(height: 6),
+          Text("Manage your store effectively", style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70)),
+        ],
       ),
     );
   }
 
-  // 🛒 Show Recent Orders Dialog
+  Widget _buildDashboardGrid(BuildContext context) {
+    return GridView(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.2,
+      ),
+      physics: BouncingScrollPhysics(),
+      children: [
+        _buildDashboardCard(context, "Added Products", "View", Icons.inventory, () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => ManageProducts()));
+        }),
+        _buildDashboardCard(context, "Orders", "340", Icons.receipt, () {
+          _showRecentOrdersDialog(context);
+        }),
+        _buildDashboardCard(context, "Revenue", "₹12,500", Icons.currency_rupee, () {}),
+        _buildDashboardCard(context, "Advertisements", "Manage", Icons.campaign, () {}),
+      ],
+    );
+  }
+
+  Widget _buildDashboardCard(BuildContext context, String title, String value, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 36, color: Color(0xFF6A0D54)),
+            SizedBox(height: 10),
+            Text(value, style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF6A0D54))),
+            SizedBox(height: 5),
+            Text(title, style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[700])),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGradientButton(String text, IconData icon, VoidCallback onPressed) {
+    return Center(
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, color: Colors.white),
+        label: Text(text, style: GoogleFonts.poppins(fontSize: 16)),
+        style: ElevatedButton.styleFrom(
+          padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          backgroundColor: Color(0xFF6A0D54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdvertisementSection(BuildContext context) {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Advertisements", style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF6A0D54))),
+            SizedBox(height: 10),
+            _buildGradientButton("Add Advertisements", Icons.campaign, () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => AdvertisementsAdd()));
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showRecentOrdersDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Recent Orders", style: TextStyle(color: Color(0xFF380230))),
+          title: Text("Recent Orders", style: GoogleFonts.poppins(color: Color(0xFF6A0D54))),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -160,7 +171,7 @@ class SellerDashboard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("Close", style: TextStyle(color: Color(0xFF380230))),
+              child: Text("Close", style: GoogleFonts.poppins(color: Color(0xFF6A0D54))),
             ),
           ],
         );
@@ -168,20 +179,11 @@ class SellerDashboard extends StatelessWidget {
     );
   }
 
-  // 🛍️ Recent Orders List Item
   Widget _buildRecentOrderItem(String orderId, String status, String amount) {
-    return Card(
-      elevation: 2,
-      margin: EdgeInsets.symmetric(vertical: 5),
-      child: ListTile(
-        title: Text(orderId, style: TextStyle(color: Color(0xFF380230))),
-        subtitle: Text("Status: $status"),
-        trailing: Text(amount, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple)),
-      ),
+    return ListTile(
+      title: Text(orderId, style: GoogleFonts.poppins(color: Color(0xFF6A0D54))),
+      subtitle: Text("Status: $status"),
+      trailing: Text(amount, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.deepPurple)),
     );
   }
-}
-
-void main() {
-  runApp(MaterialApp(home: SellerDashboard()));
 }

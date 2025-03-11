@@ -273,7 +273,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 }
 
 
-    class PDFViewer extends StatelessWidget {
+class PDFViewer extends StatelessWidget {
   final String filePath;
 
   PDFViewer({required this.filePath});

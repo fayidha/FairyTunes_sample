@@ -22,7 +22,7 @@ class _ChatListState extends State<ChatList> {
       appBar: AppBar(title: Text("Users for Chat")),
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
-            .collection("users")
+            .collection("teachers")
             .where("uid", isNotEqualTo: currentUserId) // Exclude current user
             .snapshots(),
         builder: (context, snapshot) {

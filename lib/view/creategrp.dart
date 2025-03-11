@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/model/artist_model.dart';
 import 'package:dupepro/controller/artist_controller.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -25,34 +24,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   List<String> artistEmails = [];
   List<File> _selectedImages = []; // List to store selected images
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchAllArtists();
-  }
-
-  Future<void> _fetchAllArtists() async {
-    List<Artist> artists = await _artistController.getAllArtists();
-    setState(() {
-      _allArtists = artists;
-      _isLoading = false;
-    });
-  }
-
-  void _addArtistToGroup(Artist artist) {
-    if (!_selectedArtists.contains(artist)) {
-      setState(() {
-        _selectedArtists.add(artist);
-      });
-    }
-  }
-
-  void _removeArtistFromGroup(Artist artist) {
-    setState(() {
-      _selectedArtists.remove(artist);
-    });
-  }
-
   // Method to pick multiple images
   Future<void> _pickImages() async {
     final ImagePicker _picker = ImagePicker();
@@ -63,29 +34,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         _selectedImages = pickedFiles.map((file) => File(file.path)).toList();
       });
     }
-  }
-
-  // Method to remove an image
-  void _removeImage(int index) {
-    setState(() {
-      _selectedImages.removeAt(index);
-    });
-  }
-
-  // Method to upload images to Firebase Storage
-  Future<List<String>> _uploadImages(String groupId) async {
-    List<String> imageUrls = [];
-    final FirebaseStorage _storage = FirebaseStorage.instance;
-
-    for (var image in _selectedImages) {
-      String fileName = 'groups/$groupId/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      Reference storageRef = _storage.ref().child(fileName);
-      await storageRef.putFile(image);
-      String downloadUrl = await storageRef.getDownloadURL();
-      imageUrls.add(downloadUrl);
-    }
-
-    return imageUrls;
   }
 
   Future<void> _createGroup() async {
@@ -141,6 +89,24 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     }
   }
 
+  // Method to upload images to Firebase Storage
+  Future<List<String>> _uploadImages(String groupId) async {
+    List<String> imageUrls = [];
+    final FirebaseStorage _storage = FirebaseStorage.instance;
+
+    for (var image in _selectedImages) {
+      String fileName = 'groups/$groupId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      Reference storageRef = _storage.ref().child(fileName);
+      await storageRef.putFile(image);
+      String downloadUrl = await storageRef.getDownloadURL();
+      imageUrls.add(downloadUrl);
+    }
+
+    return imageUrls;
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -185,7 +151,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
               // Add Artist Button
               ElevatedButton(
-                onPressed: _showArtistSelectionDialog,
+                onPressed: () {
+
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF6A0D54),
                   foregroundColor: Colors.white,
@@ -227,7 +195,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       ),
                       trailing: IconButton(
                         icon: Icon(Icons.remove_circle, color: Colors.red),
-                        onPressed: () => _removeArtistFromGroup(artist),
+                        onPressed: () {
+
+                        },
                       ),
                     ),
                   );
@@ -258,7 +228,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Widget _buildImageSection() {
     return GestureDetector(
-      onTap: _pickImages, // Open image picker when tapped
+      onTap: _pickImages,
       child: Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -307,7 +277,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         right: 0,
                         child: IconButton(
                           icon: Icon(Icons.remove_circle, color: Colors.red),
-                          onPressed: () => _removeImage(index),
+                          onPressed: () {
+
+                          },
                         ),
                       ),
                     ],
@@ -327,24 +299,78 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
   }
 
-  void _showArtistSelectionDialog() async {
-    // Fetch user details for all artists before showing the dialog
-    for (var artist in _allArtists) {
+/*
+  @override
+  void initState() {
+    super.initState();
+    _fetchAllArtists();
+  }
+
+
+  Future<void> _fetchAllArtists() async {
+    List<Artist> artists = await _artistController.getAllArtists();
+
+    List<String> names = [];
+    List<String> emails = [];
+
+    for (var artist in artists) {
       var userData = await Session.getUserDetailsByUid(artist.uid);
       if (userData != null) {
-        artistNames.add(userData['name']);
-        artistEmails.add(userData['email']);
+        names.add(userData['name']);
+        emails.add(userData['email']);
       } else {
-        artistNames.add("Unknown Name");
-        artistEmails.add("N/A");
+        names.add("Unknown Name");
+        emails.add("N/A");
       }
     }
+
+    setState(() {
+      _allArtists = artists;
+      artistNames = names;
+      artistEmails = emails;
+      _isLoading = false;
+    });
+  }
+
+
+
+  void _addArtistToGroup(Artist artist) {
+    if (!_selectedArtists.contains(artist)) {
+      print("Artists: @@@@@@@@@@@@@ $artist");
+      setState(() {
+        _selectedArtists.add(artist);
+      });
+    }
+  }
+
+  void _removeArtistFromGroup(Artist artist) {
+    setState(() {
+      _selectedArtists.remove(artist);
+    });
+  }
+
+
+
+  // Method to remove an image
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
+
+
+ */
+
+
+/*
+  void _showArtistSelectionDialog() async {
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Select Artists', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          title: Text('Select Artists'),
           content: _isLoading
               ? Center(child: CircularProgressIndicator())
               : SizedBox(
@@ -354,30 +380,16 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               itemCount: _allArtists.length,
               itemBuilder: (context, index) {
                 final artist = _allArtists[index];
-                return Card(
-                  elevation: 2,
-                  margin: EdgeInsets.symmetric(vertical: 4),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: ListTile(
-                    title: Text(artistNames[index], style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Type: ${artist.artistType}"),
-                        Text("Bio: ${artist.bio}"),
-                        Text("Email: ${artistEmails[index]}"),
-                      ],
-                    ),
-                    trailing: _selectedArtists.contains(artist)
-                        ? Icon(Icons.check_circle, color: Colors.green)
-                        : null,
-                    onTap: () {
-                      _addArtistToGroup(artist);
-                      Navigator.pop(context);
-                    },
-                  ),
+                return ListTile(
+                  title: Text(artistNames[index]),
+                  subtitle: Text(artistEmails[index]),
+                  trailing: _selectedArtists.contains(artist)
+                      ? Icon(Icons.check_circle, color: Colors.green)
+                      : null,
+                  onTap: () {
+                    _addArtistToGroup(artist);
+                    Navigator.pop(context);
+                  },
                 );
               },
             ),
@@ -385,5 +397,5 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         );
       },
     );
-  }
+  }*/
 }
