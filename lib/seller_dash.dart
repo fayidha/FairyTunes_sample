@@ -1,4 +1,4 @@
-import 'package:dupepro/view/Advertisements_Add.dart';
+
 import 'package:dupepro/view/ManageProducts.dart';
 import 'package:dupepro/view/Vendor_add_product.dart';
 import 'package:flutter/material.dart';
@@ -146,7 +146,13 @@ class SellerDashboard extends StatelessWidget {
             Text("Advertisements", style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF6A0D54))),
             SizedBox(height: 10),
             _buildGradientButton("Add Advertisements", Icons.campaign, () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => AdvertisementsAdd()));
+              // Navigator.push(
+              //   context,
+              //   // MaterialPageRoute(
+              //     // builder: (context) => AddAdvertisementPage(productId: Product ['id']),
+              //   ),
+              // );
+
             }),
           ],
         ),

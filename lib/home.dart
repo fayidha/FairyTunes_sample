@@ -1,8 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/Teacher_dash.dart';
 import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
+import 'package:dupepro/model/Product_model.dart';
 import 'package:dupepro/seller_dash.dart';
 import 'package:dupepro/troups.dart';
+import 'package:dupepro/videoplayer.dart';
+import 'package:dupepro/view/detailPage.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:dupepro/view/product.dart';
 import 'package:dupepro/view/teachers.dart';
@@ -175,25 +179,142 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             SizedBox(height: 40),
-            CarouselSlider(
-              items: [
-                'asset/210379377.png',
-                'asset/img1.jpg',
-                'asset/music.jpg'
-              ]
-                  .map((item) => Image.asset(item,
-                      fit: BoxFit.cover, width: double.infinity))
-                  .toList(),
-              options: CarouselOptions(
-                height: 150,
-                enlargeCenterPage: true,
-                enableInfiniteScroll: true,
-                autoPlay: true,
-                autoPlayInterval: Duration(seconds: 5),
-                aspectRatio: 16 / 9,
-                viewportFraction: 0.8,
+
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('advertisements').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No advertisements available"));
+                }
+
+                List<Product> products = snapshot.data!.docs.map((doc) {
+                  return Product.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+                }).toList();
+
+                return CarouselSlider(
+                  items: products.map((product) {
+                    String imageUrl = (product.imageUrls.isNotEmpty)
+                        ? product.imageUrls.first
+                        : 'https://via.placeholder.com/150'; // Placeholder for missing images
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProductDetail(product: product),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) =>
+                          const Center(
+                            child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  options: CarouselOptions(
+                    height: 250,
+                    enlargeCenterPage: true,
+                    enableInfiniteScroll: true,
+                    autoPlay: true,
+                    autoPlayInterval: const Duration(seconds: 5),
+                    aspectRatio: 16 / 9,
+                    viewportFraction: 0.85, // Adjusted for better visibility
+                  ),
+                );
+              },
+            ),
+
+
+            const SizedBox(height: 60),
+
+            Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              elevation: 12,
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              child: Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('advertisements').snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text("No video advertisements available"));
+                    }
+
+                    List<String> videoUrls = [];
+                    for (var doc in snapshot.data!.docs) {
+                      List<dynamic> videos = doc['videoUrls'] ?? [];
+                      videoUrls.addAll(videos.cast<String>());
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text(
+                            "🎥 Sponsored Video Advertisements",
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
+                        ),
+                        CarouselSlider(
+                          items: videoUrls
+                              .map((url) => ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                VideoPlayerWidget(videoUrl: url),
+                                Positioned(
+                                  bottom: 10,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      "Advertisement",
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ))
+                              .toList(),
+                          options: CarouselOptions(
+                            height: 250,
+                            enlargeCenterPage: true,
+                            enableInfiniteScroll: true,
+                            autoPlay: true,
+                            autoPlayInterval: const Duration(seconds: 6),
+                            viewportFraction: 0.85,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
+
             const SizedBox(height: 60),
             const Divider(thickness: 1, color: Colors.grey),
             const SizedBox(height: 40),

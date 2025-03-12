@@ -1,11 +1,10 @@
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:dupepro/view/Advertisements_Add.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dupepro/model/Product_model.dart';
 import 'package:dupepro/controller/Product_Controller.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+
 
 class ManageProducts extends StatefulWidget {
   const ManageProducts({super.key});
@@ -96,6 +95,7 @@ class _ManageProductsState extends State<ManageProducts> {
   }
 }
 
+
 class ProductDetailsScreen extends StatelessWidget {
   final Product product;
   const ProductDetailsScreen({super.key, required this.product});
@@ -103,38 +103,106 @@ class ProductDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(product.name), backgroundColor: const Color(0xFF380230)),
+      appBar: AppBar(
+        title: Text(product.name),
+        backgroundColor: const Color(0xFF380230),
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (product.imageUrls.isNotEmpty)
-              Center(
-                child: Image.network(
-                  product.imageUrls[0],
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (product.imageUrls.isNotEmpty)
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: Image.network(
+                      product.imageUrls[0],
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
+              const SizedBox(height: 20),
+              Text("Category: ${product.category}", style: const TextStyle(fontSize: 16)),
+              Text("Company: ${product.company}", style: const TextStyle(fontSize: 16)),
+              Text("Price: \$${product.price}", style: const TextStyle(fontSize: 16)),
+              Text("Quantity: ${product.quantity}", style: const TextStyle(fontSize: 16)),
+              Text("Sizes: ${product.sizes.join(', ')}", style: const TextStyle(fontSize: 16)),
+              Text("Colors: ${product.colors.join(', ')}", style: const TextStyle(fontSize: 16)),
+              Text("Description: ${product.description}", style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 20),
+
+              /// Buttons Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6A0572), Color(0xFFB0256F)], // Gradient for Edit
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => EditProductScreen(product: product)),
+                        ),
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        label: const Text("Edit Product", style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10), // Space between buttons
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF380230), Color(0xFF7A1F5F)], // Gradient for Ad
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddAdvertisementPage(productId: product.id),
+                          ),
+                        ),
+                        icon: const Icon(Icons.campaign, color: Colors.white),
+                        label: const Text("Add Advertisement", style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            const SizedBox(height: 20),
-            Text("Category: ${product.category}", style: const TextStyle(fontSize: 16)),
-            Text("Company: ${product.company}", style: const TextStyle(fontSize: 16)),
-            Text("Price: \$${product.price}", style: const TextStyle(fontSize: 16)),
-            Text("Quantity: ${product.quantity}", style: const TextStyle(fontSize: 16)),
-            Text("Sizes: ${product.sizes.join(', ')}", style: const TextStyle(fontSize: 16)),
-            Text("Colors: ${product.colors.join(', ')}", style: const TextStyle(fontSize: 16)),
-            Text("Description: ${product.description}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => EditProductScreen(product: product)),
-              ),
-              child: const Text("Edit Product"),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

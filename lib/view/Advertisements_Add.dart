@@ -1,288 +1,200 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class AdvertisementsAdd extends StatefulWidget {
+class AddAdvertisementPage extends StatefulWidget {
+  final String? productId;
+
+  const AddAdvertisementPage({Key? key, this.productId}) : super(key: key);
+
   @override
-  _AdvertisementsAddState createState() => _AdvertisementsAddState();
+  _AddAdvertisementPageState createState() => _AddAdvertisementPageState();
 }
 
-class _AdvertisementsAddState extends State<AdvertisementsAdd> {
-  final ImagePicker _picker = ImagePicker();
-  List<File> _selectedImages = [];
-  List<File> _selectedVideos = [];
-  bool _isUploading = false;
+class _AddAdvertisementPageState extends State<AddAdvertisementPage> {
+  List<File> _images = [];
+  List<File> _videos = [];
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> _pickImages() async {
-    final List<XFile>? images = await _picker.pickMultiImage();
-    if (images != null) {
+    final pickedFiles = await ImagePicker().pickMultiImage();
+    if (pickedFiles != null) {
       setState(() {
-        _selectedImages.addAll(images.map((image) => File(image.path)));
+        _images.addAll(pickedFiles.map((file) => File(file.path)));
       });
     }
   }
 
   Future<void> _pickVideos() async {
-    final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
-    if (video != null) {
+    final pickedFile = await ImagePicker().pickVideo(source: ImageSource.gallery);
+    if (pickedFile != null) {
       setState(() {
-        _selectedVideos.add(File(video.path));
+        _videos.add(File(pickedFile.path));
       });
     }
   }
-
-  void _removeFile(File file) {
+  void _removeFile(List<File> files, int index) {
     setState(() {
-      _selectedImages.remove(file);
-      _selectedVideos.remove(file);
+      files.removeAt(index);
     });
   }
 
-  Future<void> _uploadAdvertisements() async {
-    if (_selectedImages.isEmpty && _selectedVideos.isEmpty) {
+  Future<List<String>> _uploadFiles(List<File> files, String folder) async {
+    List<String> urls = [];
+    for (File file in files) {
+      try {
+        String fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+        Reference ref = _storage.ref().child('$folder/$fileName');
+        UploadTask uploadTask = ref.putFile(file);
+        TaskSnapshot snapshot = await uploadTask;
+        String url = await snapshot.ref.getDownloadURL();
+        urls.add(url);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Upload failed: $e")),
+        );
+      }
+    }
+    return urls;
+  }
+
+  Future<void> _submitAd() async {
+    if (_images.isEmpty && _videos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please select images or videos to upload.")),
+        SnackBar(content: Text("Please select images or videos to upload")),
       );
       return;
     }
 
-    setState(() => _isUploading = true);
-    try {
-      FirebaseStorage storage = FirebaseStorage.instance;
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
+    List<String> imageUrls = await _uploadFiles(_images, "advertisements/images");
+    List<String> videoUrls = await _uploadFiles(_videos, "advertisements/videos");
 
-      List<String> imageUrls = [];
-      List<String> videoUrls = [];
+    await _firestore.collection('advertisements').add({
+      'type': imageUrls.isNotEmpty ? 'image' : 'video',
+      'imageUrls': imageUrls,
+      'videoUrls': videoUrls,
+      'productId': widget.productId,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
 
-      // Upload Images
-      for (File image in _selectedImages) {
-        String fileName = 'images/${DateTime.now().millisecondsSinceEpoch}.jpg';
-        UploadTask uploadTask = storage.ref(fileName).putFile(image);
-        TaskSnapshot snapshot = await uploadTask;
-        String downloadUrl = await snapshot.ref.getDownloadURL();
-        imageUrls.add(downloadUrl);
-      }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Advertisement Posted Successfully!")),
+    );
 
-      // Upload Videos
-      for (File video in _selectedVideos) {
-        String fileName = 'videos/${DateTime.now().millisecondsSinceEpoch}.mp4';
-        UploadTask uploadTask = storage.ref(fileName).putFile(video);
-        TaskSnapshot snapshot = await uploadTask;
-        String downloadUrl = await snapshot.ref.getDownloadURL();
-        videoUrls.add(downloadUrl);
-      }
-
-      // Save to Firestore
-      await firestore.collection('advertisements').add({
-        'images': imageUrls,
-        'videos': videoUrls,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Advertisements uploaded successfully!")),
-      );
-
-      // Clear selected files after upload
-      setState(() {
-        _selectedImages.clear();
-        _selectedVideos.clear();
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Upload failed: $e")),
-      );
-    } finally {
-      setState(() => _isUploading = false);
-    }
+    setState(() {
+      _images.clear();
+      _videos.clear();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF6A0D54), Color(0xFF380230)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Back Button with Title
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      "Add Advertisements",
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-
-                // Main Content (Scrollable)
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Text(
-                              "Upload Advertisements",
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF6A0D54)),
-                            ),
-                          ),
-                          SizedBox(height: 16),
-
-                          // Selected Files Grid
-                          if (_selectedImages.isNotEmpty || _selectedVideos.isNotEmpty)
-                            _buildSelectedFilesGrid(),
-
-                          SizedBox(height: 20),
-
-                          // Buttons for Image & Video Selection with Proper Spacing
-                          Row(
-                            children: [
-                              Expanded(child: _buildGradientButton("Pick Images", Icons.image, _pickImages)),
-                              SizedBox(width: 16),
-                              Expanded(child: _buildGradientButton("Pick Videos", Icons.video_library, _pickVideos)),
-                            ],
-                          ),
-
-                          SizedBox(height: 24),
-
-                          // Upload Advertisement Button (Full Width)
-                          _isUploading
-                              ? Center(child: CircularProgressIndicator())
-                              : _buildWideGradientButton("Upload Advertisements", Icons.cloud_upload, _uploadAdvertisements),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+      appBar: AppBar(
+        title: Text("Add Advertisement", style: TextStyle(color: Colors.white)),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF380230), Color(0xFF6A0572)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSelectedFilesGrid() {
-    List<File> allFiles = [..._selectedImages, ..._selectedVideos];
-
-    return SizedBox(
-      height: 220,
-      child: GridView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(vertical: 10),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 1,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: allFiles.length,
-        itemBuilder: (context, index) {
-          File file = allFiles[index];
-          bool isVideo = _selectedVideos.contains(file);
-
-          return Stack(
-            alignment: Alignment.topRight,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: isVideo
-                    ? Container(
-                  width: 140,
-                  color: Colors.black,
-                  child: Center(
-                    child: Icon(Icons.play_circle_fill, color: Colors.white, size: 48),
+              _buildUploadSection("Upload Images", _images, _pickImages),
+              SizedBox(height: 20),
+              _buildUploadSection("Upload Videos", _videos, _pickVideos),
+              SizedBox(height: 30),
+              Center(
+                child: GestureDetector(
+                  onTap: _submitAd,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF380230), Color(0xFF6A0572)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Text(
+                      "Post Advertisement",
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
                   ),
-                )
-                    : Image.file(file, width: 140, height: 140, fit: BoxFit.cover),
-              ),
-              IconButton(
-                icon: Icon(Icons.cancel, color: Colors.redAccent),
-                onPressed: () => _removeFile(file),
+                ),
               ),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
-}
 
-// Standard Gradient Button
-Widget _buildGradientButton(String text, IconData icon, VoidCallback onPressed) {
-  return Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Color(0xFF6A0D54), Color(0xFF380230)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(text, style: TextStyle(fontSize: 16, color: Colors.white)),
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-        backgroundColor: Colors.transparent, // Transparent to show gradient
-        shadowColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    ),
-  );
-}
+  Widget _buildUploadSection(String label, List<File> files, VoidCallback pickFunction) {
+    return Column(
+      children: [
+        Container(
+          height: 150,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.purple, width: 2),
+            gradient: LinearGradient(
+              colors: [Color(0xFF380230), Color(0xFF6A0572)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Center(
+            child: files.isEmpty
+                ? Text(label, style: TextStyle(color: Colors.white, fontSize: 16))
+                : Wrap(
+              spacing: 10,
+              children: files.asMap().entries.map((entry) => Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  entry.value.path.endsWith("mp4")
 
-// Wide Gradient Button (for Upload)
-Widget _buildWideGradientButton(String text, IconData icon, VoidCallback onPressed) {
-  return Container(
-    width: double.infinity,
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Color(0xFF6A0D54), Color(0xFF380230)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(text, style: TextStyle(fontSize: 16, color: Colors.white)),
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    ),
-  );
+                      ? Icon(Icons.video_collection, size: 50, color: Colors.red)
+                      : ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(entry.value, width: 60, height: 60, fit: BoxFit.cover),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.cancel, color: Colors.white),
+                    onPressed: () => _removeFile(files, entry.key),
+                  ),
+                ],
+              )).toList(),
+            ),
+          ),
+        ),
+        SizedBox(height: 10),
+        ElevatedButton.icon(
+          onPressed: pickFunction,
+          icon: Icon(Icons.upload, color: Colors.white),
+          label: Text("Upload", style: TextStyle(color: Colors.white)),
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+            backgroundColor: Colors.deepPurple,
+          ),
+        ),
+      ],
+    );
+  }
 }
-
