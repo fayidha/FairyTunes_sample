@@ -1,101 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class BookingHistoryPage extends StatelessWidget {
-  const BookingHistoryPage({super.key});
+class MyBookingsPage extends StatefulWidget {
+  @override
+  _MyBookingsPageState createState() => _MyBookingsPageState();
+}
 
-  final List<Map<String, dynamic>> bookings = const [
-    {
-      "bookingId": "BK001",
-      "date": "Feb 20, 2025",
-      "service": "Hotel Stay",
-      "location": "Hilton, New York",
-      "price": 250.00,
-      "status": "Completed"
-    },
-    {
-      "bookingId": "BK002",
-      "date": "Mar 10, 2025",
-      "service": "Flight Ticket",
-      "location": "Los Angeles to Chicago",
-      "price": 320.50,
-      "status": "Upcoming"
-    },
-    {
-      "bookingId": "BK003",
-      "date": "Jan 05, 2025",
-      "service": "Car Rental",
-      "location": "Miami, Florida",
-      "price": 150.75,
-      "status": "Cancelled"
-    },
-  ];
+class _MyBookingsPageState extends State<MyBookingsPage> {
+  String? userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _getUserId();
+  }
+
+  Future<void> _getUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userId = prefs.getString('uid');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Booking History"),
-        backgroundColor: Colors.deepPurple,
-      ),
-      body: bookings.isEmpty
-          ? const Center(child: Text("No past bookings found"))
-          : ListView.builder(
-        padding: const EdgeInsets.all(10),
-        itemCount: bookings.length,
-        itemBuilder: (context, index) {
-          final booking = bookings[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(12),
-              leading: CircleAvatar(
-                backgroundColor: Colors.deepPurple.shade100,
-                child: Icon(
-                  Icons.book_online,
-                  color: Colors.deepPurple,
+      appBar: AppBar(title: Text('My Bookings')),
+      body: userId == null
+          ? Center(child: CircularProgressIndicator())
+          : StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('bookings')
+            .where('userId', isEqualTo: userId) // Fetch only user bookings
+
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No bookings found.'));
+          }
+
+          return ListView(
+            padding: EdgeInsets.all(10),
+            children: snapshot.data!.docs.map((doc) {
+              var data = doc.data() as Map<String, dynamic>;
+              return Card(
+                margin: EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  title: Text('${data['groupName']} - ${data['eventLocation']}'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Date: ${data['programDate']}'),
+                      Text('Time: ${data['programTime']}'),
+                      Text('Status: ${data['status']}',
+                          style: TextStyle(
+                            color: data['status'] == 'Pending'
+                                ? Colors.orange
+                                : Colors.green,
+                            fontWeight: FontWeight.bold,
+                          )),
+                    ],
+                  ),
+                  trailing: Icon(Icons.arrow_forward_ios),
                 ),
-              ),
-              title: Text(
-                booking["service"],
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Date: ${booking["date"]}"),
-                  Text("Location: ${booking["location"]}"),
-                  Text("Price: \$${booking["price"].toStringAsFixed(2)}"),
-                ],
-              ),
-              trailing: Text(
-                booking["status"],
-                style: TextStyle(
-                  color: _getStatusColor(booking["status"]),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () {
-                // Navigate to booking details page if needed
-              },
-            ),
+              );
+            }).toList(),
           );
         },
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case "Completed":
-        return Colors.green;
-      case "Upcoming":
-        return Colors.orange;
-      case "Cancelled":
-        return Colors.red;
-      default:
-        return Colors.black;
-    }
   }
 }

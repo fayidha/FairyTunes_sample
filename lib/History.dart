@@ -18,10 +18,10 @@ class History extends StatelessWidget {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
-            OrderHistoryPage(),
-            BookingHistoryPage(),
+            const OrderHistoryPage(),
+            MyBookingsPage(),
           ],
         ),
       ),

@@ -1,15 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class DraggableContainerExample extends StatefulWidget {
   @override
-  _DraggableContainerExampleState createState() => _DraggableContainerExampleState();
+  _DraggableContainerExampleState createState() =>
+      _DraggableContainerExampleState();
 }
 
 class _DraggableContainerExampleState extends State<DraggableContainerExample> {
   double _containerHeight = 300;
   double _maxHeight = 600;
   double _minHeight = 150;
+  User? _currentUser = FirebaseAuth.instance.currentUser;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _streetController = TextEditingController();
@@ -21,6 +24,12 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
   final TextEditingController _phoneController = TextEditingController();
 
   void _saveLocation({String? docId}) async {
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Please log in first.")));
+      return;
+    }
+
     String name = _nameController.text;
     String street = _streetController.text;
     String city = _cityController.text;
@@ -33,6 +42,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
     if (name.isNotEmpty && street.isNotEmpty && city.isNotEmpty) {
       if (docId == null) {
         await FirebaseFirestore.instance.collection('locations').add({
+          'userId': _currentUser!.uid, // Store user ID
           'name': name,
           'street': street,
           'city': city,
@@ -115,6 +125,18 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
     );
   }
 
+  Stream<QuerySnapshot> _getUserLocations() {
+    if (_currentUser == null) {
+      return Stream<QuerySnapshot>.empty();
+    }
+
+    return FirebaseFirestore.instance
+        .collection('locations')
+        .where('userId', isEqualTo: _currentUser!.uid) // Show only current user's locations
+
+        .snapshots();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -151,12 +173,21 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
                   borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
                   boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -5))],
                 ),
-                child: StreamBuilder(
-                  stream: FirebaseFirestore.instance.collection('locations').orderBy('timestamp', descending: true).snapshots(),
-                  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                    if (!snapshot.hasData) {
+                child: _currentUser == null
+                    ? Center(child: Text("Please log in to view locations."))
+                    : StreamBuilder<QuerySnapshot>(
+                  stream: _getUserLocations(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(child: CircularProgressIndicator());
                     }
+                    if (snapshot.hasError) {
+                      return Center(child: Text("Error: ${snapshot.error}"));
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(child: Text("No locations added yet."));
+                    }
+
                     var locations = snapshot.data!.docs;
                     return ListView.builder(
                       itemCount: locations.length,
@@ -171,8 +202,15 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                IconButton(icon: Icon(Icons.edit, color: Colors.green), onPressed: () => _showAddLocationDialog(docId: location.id, location: location.data() as Map<String, dynamic>)),
-                                IconButton(icon: Icon(Icons.delete, color: Colors.red), onPressed: () => FirebaseFirestore.instance.collection('locations').doc(location.id).delete()),
+                                IconButton(
+                                  icon: Icon(Icons.edit, color: Colors.green),
+                                  onPressed: () => _showAddLocationDialog(
+                                      docId: location.id, location: location.data() as Map<String, dynamic>),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => FirebaseFirestore.instance.collection('locations').doc(location.id).delete(),
+                                ),
                               ],
                             ),
                           ),

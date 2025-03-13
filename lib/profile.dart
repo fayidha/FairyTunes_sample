@@ -92,6 +92,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,15 +118,27 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             SizedBox(height: 20),
-            Text(name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text(email, style: TextStyle(fontSize: 16, color: Colors.grey)),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => Editprofile())),
-              child: Text('Edit Profile'),
+
+            // Name with Edit Icon
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  name,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                      context, MaterialPageRoute(builder: (_) => Editprofile())),
+                  child: Icon(Icons.edit, color: Colors.grey, size: 20),
+                ),
+              ],
             ),
+
+            Text(email, style: TextStyle(fontSize: 16, color: Colors.grey)),
             SizedBox(height: 20),
+
             _buildSwitchMyRole(context),
             SizedBox(height: 20),
             _buildCarouselSlider(context),

@@ -1,33 +1,65 @@
 import 'package:dupepro/booksuccess.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 class BookNow extends StatefulWidget {
+  final String groupId;
+  final String groupName;
+  final String? location; // Optional location from the troupe
+
+  BookNow({required this.groupId, required this.groupName, this.location});
+
   @override
   _BookNowState createState() => _BookNowState();
 }
 
 class _BookNowState extends State<BookNow> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _programDateController = TextEditingController();
+  final _programTimeController = TextEditingController();
+  final _eventLocationController = TextEditingController();
+
+  String? _userName;
+  String? _userEmail;
+  bool _isLoading = true;
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _programDateController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchUserData();
+    if (widget.location != null) {
+      _eventLocationController.text = widget.location!;
+    }
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking confirmed!')),
-      );
-      Navigator.push(context, MaterialPageRoute(builder: (context) => success(),));
+  Future<void> _fetchUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userUid = prefs.getString('uid');
+
+    if (userUid != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userUid)
+            .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            _userName = userDoc['name'] ?? 'Unknown';
+            _userEmail = userDoc['email'] ?? 'Unknown';
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        print("Error fetching user data: $e");
+      }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -41,40 +73,113 @@ class _BookNowState extends State<BookNow> {
 
     if (picked != null) {
       setState(() {
-        _programDateController.text = "${picked.toLocal()}".split(' ')[0];
+        _programDateController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _programTimeController.text = picked.format(context);
+      });
+    }
+  }
+
+  void _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userUid = prefs.getString('uid'); // Get logged-in user ID
+
+      if (userUid == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User not logged in!')),
+        );
+        return;
+      }
+
+      // Prepare booking data
+      Map<String, dynamic> bookingData = {
+        'userId': userUid,
+        'userName': _userName,
+        'userEmail': _userEmail,
+        'phone': _phoneController.text.trim(),
+        'groupId': widget.groupId,
+        'groupName': widget.groupName,
+        'programDate': _programDateController.text,
+        'programTime': _programTimeController.text,
+        'eventLocation': _eventLocationController.text,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'Pending' // Default status
+      };
+
+      try {
+        await FirebaseFirestore.instance.collection('bookings').add(bookingData);
+
+        // Navigate to Success Page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Success(
+              groupId: widget.groupId,
+              groupName: widget.groupName,
+            ),
+          ),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('')),
+        );
+      } catch (e) {
+        print("Error saving booking: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error booking. Please try again!')),
+        );
+      }
+    }
+  }
+
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _programDateController.dispose();
+    _programTimeController.dispose();
+    _eventLocationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true, // Makes the background image extend behind the AppBar
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent, // Transparent AppBar
+        backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text('Book Now', style: TextStyle(color: Colors.white)),
         iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
-              'asset/img1.jpg', // Ensure this image is in your assets folder
+              'asset/img1.jpg',
               fit: BoxFit.cover,
             ),
           ),
-
-          // Centered Form in White Container
           Center(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(13.0),
               child: Container(
                 padding: const EdgeInsets.all(12.0),
-                width: 400, // Adjust width for responsiveness
+                width: 400,
                 decoration: BoxDecoration(
-                  color: Colors.white, // White background for the form
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -84,51 +189,33 @@ class _BookNowState extends State<BookNow> {
                     ),
                   ],
                 ),
-                child: Form(
+                child: _isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : Form(
                   key: _formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Name field
                       TextFormField(
-                        controller: _nameController,
+                        initialValue: _userName,
                         decoration: InputDecoration(
                           labelText: 'Name',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                           prefixIcon: Icon(Icons.person),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your name';
-                          }
-                          return null;
-                        },
+                        readOnly: true,
                       ),
                       const SizedBox(height: 16),
-
-                      // Email field
                       TextFormField(
-                        controller: _emailController,
+                        initialValue: _userEmail,
                         decoration: InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                           prefixIcon: Icon(Icons.email),
                         ),
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-                          if (!emailRegex.hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
+                        readOnly: true,
                       ),
                       const SizedBox(height: 16),
-
-                      // Phone field
                       TextFormField(
                         controller: _phoneController,
                         decoration: InputDecoration(
@@ -148,8 +235,6 @@ class _BookNowState extends State<BookNow> {
                         },
                       ),
                       const SizedBox(height: 16),
-
-                      // Program Date field with calendar popup
                       GestureDetector(
                         onTap: () => _selectDate(context),
                         child: AbsorbPointer(
@@ -160,33 +245,63 @@ class _BookNowState extends State<BookNow> {
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                               prefixIcon: Icon(Icons.date_range),
                             ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter the program date';
-                              }
-                              return null;
-                            },
+                            validator: (value) => value!.isEmpty ? 'Please enter the program date' : null,
                           ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: () => _selectTime(context),
+                        child: AbsorbPointer(
+                          child: TextFormField(
+                            controller: _programTimeController,
+                            decoration: InputDecoration(
+                              labelText: 'Program Time',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                              prefixIcon: Icon(Icons.access_time),
+                            ),
+                            validator: (value) => value!.isEmpty ? 'Please enter the program time' : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _eventLocationController,
+                        decoration: InputDecoration(
+                          labelText: 'Event Location',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                          prefixIcon: Icon(Icons.location_on),
+                        ),
+                        validator: (value) => value!.isEmpty ? 'Please enter the event location' : null,
+                      ),
                       const SizedBox(height: 24),
-
-                      // Book Button
                       ElevatedButton(
                         onPressed: _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF380230),
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                                (Set<MaterialState> states) {
+                              if (states.contains(MaterialState.pressed)) {
+                                return Colors.purple.shade900; // Darker color when pressed
+                              } else if (states.contains(MaterialState.hovered)) {
+                                return Colors.purple.shade700; // Lighter shade on hover
+                              }
+                              return Color(0xFF380230); // Default color
+                            },
+                          ),
+                          foregroundColor: MaterialStateProperty.all(Colors.white),
+                          padding: MaterialStateProperty.all(
+                            EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                          ),
+                          shape: MaterialStateProperty.all(
+                            RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                           ),
                         ),
                         child: Text(
                           'Book',
                           style: TextStyle(fontSize: 18),
                         ),
-                      ),
+                      )
+
                     ],
                   ),
                 ),

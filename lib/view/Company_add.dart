@@ -42,9 +42,12 @@ class _CompanyAddState extends State<CompanyAdd> {
         setState(() {
           _name = userDetails['name'] ?? 'Not Available';
           _email = userDetails['email'] ?? 'Not Available';
+
+          print('UserName: >...................... $_name');
         });
+        await _fetchSellerDetails();
       }
-      await _fetchSellerDetails(); // Fetch seller-specific details from Firestore
+
     } catch (e) {
       print("Error fetching user details: $e");
     }
@@ -62,6 +65,10 @@ class _CompanyAddState extends State<CompanyAdd> {
           _phone = sellerData['phone'] ?? '';
           _address = sellerData['address'] ?? '';
           _productCategory = sellerData['productCategory'] ?? '';
+          print('Company Name: ......................... $_companyName');
+          print('Company Name: ......................... $_phone');
+          print('Company Name: ......................... $_address');
+          print('Company Name: .........................$_productCategory');
         });
       }
     } catch (e) {
