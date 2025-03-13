@@ -1,9 +1,10 @@
+import 'package:dupepro/controller/session.dart';
+import 'package:dupepro/view/selectArtists.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:dupepro/model/artist_model.dart';
-import 'package:dupepro/controller/artist_controller.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class CreateGroupPage extends StatefulWidget {
@@ -14,15 +15,85 @@ class CreateGroupPage extends StatefulWidget {
 class _CreateGroupPageState extends State<CreateGroupPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _groupNameController = TextEditingController();
-  final TextEditingController _groupDescriptionController = TextEditingController();
-  final ArtistController _artistController = ArtistController();
+  final TextEditingController _groupDescriptionController =
+      TextEditingController();
 
   List<Artist> _selectedArtists = [];
-  List<Artist> _allArtists = [];
-  bool _isLoading = true;
   List<String> artistNames = [];
   List<String> artistEmails = [];
   List<File> _selectedImages = []; // List to store selected images
+  String? _currentUserId;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSelectedArtists();
+
+    Future.delayed(Duration(seconds: 3), () {
+      setState(() {
+        _isLoading = false;
+      });
+    });
+  }
+
+  Future<void> _fetchSelectedArtists() async {
+    try {
+      Map<String, String?> sessionData = await Session.getSession();
+      _currentUserId = sessionData['uid'];
+
+      if (_currentUserId == null) return;
+
+      // Fetch selected artist IDs from artistSelections
+      DocumentSnapshot selectionDoc = await FirebaseFirestore.instance
+          .collection('artistSelections')
+          .doc(_currentUserId)
+          .get();
+
+      if (!selectionDoc.exists) return;
+
+      List<String> selectedArtistIds =
+          List<String>.from(selectionDoc['selectedArtists'] ?? []);
+
+      List<Artist> artists = [];
+      List<String> names = [];
+      List<String> emails = [];
+
+      for (String artistId in selectedArtistIds) {
+        // Fetch artist details from "artists" collection
+        DocumentSnapshot artistDoc = await FirebaseFirestore.instance
+            .collection('artists')
+            .doc(artistId)
+            .get();
+        if (!artistDoc.exists) continue;
+
+        Artist artist = Artist.fromDocument(artistDoc);
+
+        // Fetch user details from "users" collection for name & email
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(artistId)
+            .get();
+        String name = userDoc.exists ? userDoc['name'] ?? 'Unknown' : 'Unknown';
+        String email =
+            userDoc.exists ? userDoc['email'] ?? 'No Email' : 'No Email';
+
+        // Store artist & user details
+        artists.add(artist);
+        names.add(name);
+        emails.add(email);
+      }
+
+      // Update UI
+      setState(() {
+        _selectedArtists = artists;
+        artistNames = names;
+        artistEmails = emails;
+      });
+    } catch (e) {
+      print("Error fetching selected artists: $e");
+    }
+  }
 
   // Method to pick multiple images
   Future<void> _pickImages() async {
@@ -36,7 +107,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     }
   }
 
-  Future<void> _createGroup() async {
+  /*Future<void> _createGroup() async {
     if (_formKey.currentState!.validate()) {
       String groupId = FirebaseFirestore.instance.collection('groups').doc().id;
 
@@ -44,7 +115,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       List<String> imageUrls = await _uploadImages(groupId);
 
       // Create a list of member UIDs from selected artists
-      List<String> memberUids = _selectedArtists.map((artist) => artist.uid).toList();
+      List<String> memberUids =
+          _selectedArtists.map((artist) => artist.uid).toList();
 
       // Create the group with image URLs and members list
       await FirebaseFirestore.instance.collection('groups').doc(groupId).set({
@@ -52,18 +124,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         'groupName': _groupNameController.text,
         'groupDescription': _groupDescriptionController.text,
         'images': imageUrls, // Add image URLs here
-        'members': memberUids, // Add member UIDs here
+        'members': memberUids,
         'createdAt': Timestamp.now(),
       });
 
       // Prepare artist request list
-      List<Map<String, dynamic>> artistRequests = _selectedArtists.asMap().entries.map((entry) {
+      List<Map<String, dynamic>> artistRequests =
+          _selectedArtists.asMap().entries.map((entry) {
         int index = entry.key;
         Artist artist = entry.value;
         return {
-          'index': index, // Numbering artists 0,1,2...
+          'index': index,
           'artistUid': artist.uid,
-          'artistName': artistNames[index], // Use previously fetched names
+          'artistName': artistNames[index],
           'status': 'pending',
           'sentAt': Timestamp.now(),
         };
@@ -87,6 +160,85 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         _selectedImages.clear();
       });
     }
+  }*/
+
+  Future<void> _createGroup() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        Map<String, String?> sessionData = await Session.getSession();
+        String? adminId = sessionData['uid'];
+        if (adminId == null) return;
+
+        String groupId =
+            FirebaseFirestore.instance.collection('groups').doc().id;
+
+        // Upload images and get URLs
+        List<String> imageUrls = await _uploadImages(groupId);
+
+        // Create the group with admin ID (NO MEMBERS YET)
+        await FirebaseFirestore.instance.collection('groups').doc(groupId).set({
+          'groupId': groupId,
+          'groupName': _groupNameController.text,
+          'groupDescription': _groupDescriptionController.text,
+          'images': imageUrls,
+          'admin': adminId, // Set current user as admin
+          'createdAt': Timestamp.now(),
+        });
+
+        // Prepare artist request list (for invitations)
+        List<Map<String, dynamic>> artistRequests =
+            _selectedArtists.asMap().entries.map((entry) {
+          int index = entry.key;
+          Artist artist = entry.value;
+          return {
+            'index': index,
+            'artistUid': artist.uid,
+            'artistName': artistNames[index],
+            'status': 'pending', // They need to accept first
+            'sentAt': Timestamp.now(),
+          };
+        }).toList();
+
+        // Store all requests under a single document
+        await FirebaseFirestore.instance
+            .collection('requests')
+            .doc(groupId)
+            .set({
+          'groupId': groupId,
+          'groupName': _groupNameController.text,
+          'admin': adminId,
+          'artists': artistRequests,
+        });
+
+        // 🔥 Delete artist documents where admin == current userId
+        QuerySnapshot artistDocs = await FirebaseFirestore.instance
+            .collection('artistSelections')
+            .where('adminId', isEqualTo: adminId)
+            .get();
+
+        for (var doc in artistDocs.docs) {
+          print('Doc: ..................... $doc');
+          await doc.reference.delete();
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Group created! Invitations sent.')),
+        );
+
+        // Clear inputs & selections
+        _groupNameController.clear();
+        _groupDescriptionController.clear();
+        setState(() {
+          _selectedArtists.clear();
+          _selectedImages.clear();
+        });
+      } catch (e) {
+        print("Error creating group: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create group.')),
+        );
+      }
+    }
   }
 
   // Method to upload images to Firebase Storage
@@ -95,7 +247,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     final FirebaseStorage _storage = FirebaseStorage.instance;
 
     for (var image in _selectedImages) {
-      String fileName = 'groups/$groupId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String fileName =
+          'groups/$groupId/${DateTime.now().millisecondsSinceEpoch}.jpg';
       Reference storageRef = _storage.ref().child(fileName);
       await storageRef.putFile(image);
       String downloadUrl = await storageRef.getDownloadURL();
@@ -104,8 +257,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
     return imageUrls;
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +283,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.8),
                 ),
-                validator: (value) => value!.isEmpty ? 'Enter a group name' : null,
+                validator: (value) =>
+                    value!.isEmpty ? 'Enter a group name' : null,
               ),
               SizedBox(height: 16),
 
@@ -145,14 +297,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.8),
                 ),
-                validator: (value) => value!.isEmpty ? 'Enter a group description' : null,
+                validator: (value) =>
+                    value!.isEmpty ? 'Enter a group description' : null,
               ),
               SizedBox(height: 16),
 
               // Add Artist Button
               ElevatedButton(
                 onPressed: () {
-
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SelectArtistsPage(),
+                      ));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF6A0D54),
@@ -165,44 +322,47 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 child: Text('Add Artist', style: TextStyle(fontSize: 16)),
               ),
               SizedBox(height: 24),
-
-              // Selected Artists List
-              Text('Selected Artists', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              _selectedArtists.isEmpty
-                  ? Center(child: Text('No artists added yet', style: TextStyle(color: Colors.grey)))
-                  : ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: _selectedArtists.length,
-                itemBuilder: (context, index) {
-                  final artist = _selectedArtists[index];
-                  return Card(
-                    elevation: 4,
-                    margin: EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: ListTile(
-                      title: Text(artistNames[index], style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Type: ${artist.artistType}"),
-                          Text("Bio: ${artist.bio}"),
-                          Text("Email: ${artistEmails[index]}"),
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: Icon(Icons.remove_circle, color: Colors.red),
-                        onPressed: () {
-
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
+              _isLoading
+                  ? Center(
+                      child:
+                          CircularProgressIndicator()) // 🔄 Show loader while fetching artists
+                  : _selectedArtists.isEmpty
+                      ? Center(
+                          child: Text('No artists added yet',
+                              style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: _selectedArtists.length,
+                          itemBuilder: (context, index) {
+                            final artist = _selectedArtists[index];
+                            return Card(
+                              elevation: 4,
+                              margin: EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ListTile(
+                                title: Text(artistNames[index],
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Type: ${artist.artistType}"),
+                                    Text("Bio: ${artist.bio}"),
+                                    Text("Email: ${artistEmails[index]}"),
+                                  ],
+                                ),
+                                trailing: IconButton(
+                                  icon: Icon(Icons.remove_circle,
+                                      color: Colors.red),
+                                  onPressed: () {},
+                                ),
+                              ),
+                            );
+                          },
+                        ),
 
               SizedBox(height: 24),
 
@@ -277,17 +437,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         right: 0,
                         child: IconButton(
                           icon: Icon(Icons.remove_circle, color: Colors.red),
-                          onPressed: () {
-
-                          },
+                          onPressed: () {},
                         ),
                       ),
                     ],
                   );
                 },
               ),
-            if (_selectedImages.isNotEmpty)
-              SizedBox(height: 8),
+            if (_selectedImages.isNotEmpty) SizedBox(height: 8),
             if (_selectedImages.isNotEmpty)
               Text(
                 'Tap to add more images',
@@ -298,104 +455,4 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       ),
     );
   }
-
-/*
-  @override
-  void initState() {
-    super.initState();
-    _fetchAllArtists();
-  }
-
-
-  Future<void> _fetchAllArtists() async {
-    List<Artist> artists = await _artistController.getAllArtists();
-
-    List<String> names = [];
-    List<String> emails = [];
-
-    for (var artist in artists) {
-      var userData = await Session.getUserDetailsByUid(artist.uid);
-      if (userData != null) {
-        names.add(userData['name']);
-        emails.add(userData['email']);
-      } else {
-        names.add("Unknown Name");
-        emails.add("N/A");
-      }
-    }
-
-    setState(() {
-      _allArtists = artists;
-      artistNames = names;
-      artistEmails = emails;
-      _isLoading = false;
-    });
-  }
-
-
-
-  void _addArtistToGroup(Artist artist) {
-    if (!_selectedArtists.contains(artist)) {
-      print("Artists: @@@@@@@@@@@@@ $artist");
-      setState(() {
-        _selectedArtists.add(artist);
-      });
-    }
-  }
-
-  void _removeArtistFromGroup(Artist artist) {
-    setState(() {
-      _selectedArtists.remove(artist);
-    });
-  }
-
-
-
-  // Method to remove an image
-  void _removeImage(int index) {
-    setState(() {
-      _selectedImages.removeAt(index);
-    });
-  }
-
-
-
- */
-
-
-/*
-  void _showArtistSelectionDialog() async {
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Select Artists'),
-          content: _isLoading
-              ? Center(child: CircularProgressIndicator())
-              : SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _allArtists.length,
-              itemBuilder: (context, index) {
-                final artist = _allArtists[index];
-                return ListTile(
-                  title: Text(artistNames[index]),
-                  subtitle: Text(artistEmails[index]),
-                  trailing: _selectedArtists.contains(artist)
-                      ? Icon(Icons.check_circle, color: Colors.green)
-                      : null,
-                  onTap: () {
-                    _addArtistToGroup(artist);
-                    Navigator.pop(context);
-                  },
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }*/
 }

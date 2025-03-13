@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Artist {
-  String uid; // User ID from Firebase Authentication
-  String id; // Unique artist ID in Firestore
+  String uid;
+  String id;
   String artistType;
   String bio;
   bool joinBands;

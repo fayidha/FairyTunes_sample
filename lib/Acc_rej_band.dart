@@ -1,3 +1,4 @@
+import 'package:dupepro/view/groupProfile.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,10 +14,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Group Invitations'),
-        backgroundColor: Color(0xFF380230),
-      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('requests').snapshots(),
         builder: (context, snapshot) {
@@ -32,13 +29,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
           var userRequests = snapshot.data!.docs.where((doc) {
             var data = doc.data() as Map<String, dynamic>?;
 
-            if (data == null || !data.containsKey('artists') || data['artists'] is! List) {
+            if (data == null ||
+                !data.containsKey('artists') ||
+                data['artists'] is! List) {
               return false; // Ignore if artists field is missing or invalid
             }
 
             var artists = data['artists'] as List<dynamic>;
             return artists.any((artist) =>
-            artist is Map<String, dynamic> &&
+                artist is Map<String, dynamic> &&
                 artist['artistUid'] == currentUser?.uid &&
                 artist['status'] == 'pending');
           }).toList();
@@ -62,8 +61,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
               // Find the current user's artist data
               var artistData = (data['artists'] as List).firstWhere(
-                    (artist) =>
-                artist is Map<String, dynamic> &&
+                (artist) =>
+                    artist is Map<String, dynamic> &&
                     artist['artistUid'] == currentUser?.uid,
                 orElse: () => null,
               );
@@ -72,23 +71,33 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 return SizedBox.shrink(); // Skip if no valid artist data
               }
 
-              return Card(
-                margin: EdgeInsets.all(8),
-                child: ListTile(
-                  title: Text(groupName, style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("Status: ${artistData['status']}"),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.check_circle, color: Colors.green),
-                        onPressed: () => _acceptRequest(groupId, request.id),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.cancel, color: Colors.red),
-                        onPressed: () => _rejectRequest(groupId, request.id),
-                      ),
-                    ],
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GroupProfile(groupId: groupId),
+                      ));
+                },
+                child: Card(
+                  margin: EdgeInsets.all(8),
+                  child: ListTile(
+                    title: Text(groupName,
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text("Status: ${artistData['status']}"),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.check_circle, color: Colors.green),
+                          onPressed: () => _acceptRequest(groupId, request.id),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.cancel, color: Colors.red),
+                          onPressed: () => _rejectRequest(groupId, request.id),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -106,7 +115,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     await _updateRequestStatus(requestId, 'accepted');
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Joined the group!")));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Joined the group!")));
   }
 
   Future<void> _rejectRequest(String groupId, String requestId) async {
@@ -116,11 +126,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     await _updateRequestStatus(requestId, 'rejected');
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Request rejected.")));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Request rejected.")));
   }
 
   Future<void> _updateRequestStatus(String requestId, String status) async {
-    DocumentReference requestRef = FirebaseFirestore.instance.collection('requests').doc(requestId);
+    DocumentReference requestRef =
+        FirebaseFirestore.instance.collection('requests').doc(requestId);
 
     var requestData = await requestRef.get();
     if (requestData.exists) {
@@ -130,7 +142,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
       List<dynamic> artists = data['artists'];
       for (var artist in artists) {
-        if (artist is Map<String, dynamic> && artist['artistUid'] == currentUser!.uid) {
+        if (artist is Map<String, dynamic> &&
+            artist['artistUid'] == currentUser!.uid) {
           artist['status'] = status;
         }
       }

@@ -1,3 +1,4 @@
+import 'package:dupepro/view/groupList.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:flutter/material.dart';
 import 'package:dupepro/controller/artist_controller.dart';
@@ -28,7 +29,8 @@ class _ArtistProfileState extends State<ArtistProfile> {
 
   final ArtistController _controller = ArtistController();
   final TextEditingController _bioController = TextEditingController();
-  final TextEditingController _otherArtistTypeController = TextEditingController();
+  final TextEditingController _otherArtistTypeController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -51,7 +53,8 @@ class _ArtistProfileState extends State<ArtistProfile> {
           joinBands = artistDoc['joinBands'] ?? false;
           _bioController.text = bio ?? "";
           if (artistType == 'Other') {
-            _otherArtistTypeController.text = artistDoc['otherArtistType'] ?? "";
+            _otherArtistTypeController.text =
+                artistDoc['otherArtistType'] ?? "";
           }
           isFormFilled = true; // Set the flag to true if details exist
         });
@@ -96,7 +99,7 @@ class _ArtistProfileState extends State<ArtistProfile> {
       setState(() => isSubmitting = true);
 
       String finalArtistType =
-      artistType == 'Other' ? (otherArtistType ?? '') : artistType!;
+          artistType == 'Other' ? (otherArtistType ?? '') : artistType!;
 
       Artist artist = Artist(
         uid: widget.uid,
@@ -145,121 +148,108 @@ class _ArtistProfileState extends State<ArtistProfile> {
             child: isFormFilled
                 ? _buildProfileCard()
                 : Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 40),
-                  userName != null && userEmail != null
-                      ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'If you are an artist! This is the golden chance for you to join a band...',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple,
-                          fontStyle: FontStyle.italic,
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 40),
+                        userName != null && userEmail != null
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'If you are an artist! This is the golden chance for you to join a band...',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.purple,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                  SizedBox(height: 30),
+                                  _buildTextField('Username', userName!,
+                                      (value) => userName = value),
+                                  SizedBox(height: 20),
+                                  _buildTextField('Email', userEmail!,
+                                      (value) => userEmail = value),
+                                ],
+                              )
+                            : Center(child: CircularProgressIndicator()),
+                        SizedBox(height: 20),
+                        Text('What type of artist are you?',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        DropdownButtonFormField<String>(
+                          items: [
+                            'Singer',
+                            'Instrumentalist',
+                            'Composer',
+                            'DJ',
+                            'Other'
+                          ]
+                              .map((label) => DropdownMenuItem(
+                                  child: Text(label), value: label))
+                              .toList(),
+                          value: artistType,
+                          onChanged: (value) =>
+                              setState(() => artistType = value),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Please select your artist type'
+                              : null,
+                          decoration: _inputDecoration(),
                         ),
-                      ),
-                      SizedBox(height: 30),
-                      _buildTextField('Username', userName!,
-                              (value) => userName = value),
-                      SizedBox(height: 20),
-                      _buildTextField('Email', userEmail!,
-                              (value) => userEmail = value),
-                    ],
-                  )
-                      : Center(child: CircularProgressIndicator()),
-                  SizedBox(height: 20),
-                  Text('What type of artist are you?',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  DropdownButtonFormField<String>(
-                    items: [
-                      'Singer',
-                      'Instrumentalist',
-                      'Composer',
-                      'DJ',
-                      'Other'
-                    ]
-                        .map((label) =>
-                        DropdownMenuItem(child: Text(label), value: label))
-                        .toList(),
-                    value: artistType,
-                    onChanged: (value) => setState(() => artistType = value),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Please select your artist type'
-                        : null,
-                    decoration: _inputDecoration(),
-                  ),
-                  if (artistType == 'Other') ...[
-                    SizedBox(height: 10),
-                    _buildTextField('Specify Other', '',
-                            (value) => otherArtistType = value),
-                  ],
-                  SizedBox(height: 20),
-                  Text('Tell us about yourself',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  TextFormField(
-                    maxLines: 5,
-                    decoration: _inputDecoration(),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Please enter your bio'
-                        : null,
-                    onChanged: (value) => bio = value,
-                  ),
-                  SizedBox(height: 20),
-                  Text('Are you open to joining bands?',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SwitchListTile(
-                    title: Text(joinBands
-                        ? 'Yes, I want to join bands'
-                        : 'No, I don’t want to join bands'),
-                    value: joinBands,
-                    onChanged: (value) => setState(() => joinBands = value),
-                  ),
-                  SizedBox(height: 20),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: isSubmitting ? null : _submitProfile,
-                      child: Text('Submit',
-                          style: TextStyle(fontSize: 14, color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF380230),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                      ),
+                        if (artistType == 'Other') ...[
+                          SizedBox(height: 10),
+                          _buildTextField('Specify Other', '',
+                              (value) => otherArtistType = value),
+                        ],
+                        SizedBox(height: 20),
+                        Text('Tell us about yourself',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        TextFormField(
+                          maxLines: 5,
+                          decoration: _inputDecoration(),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Please enter your bio'
+                              : null,
+                          onChanged: (value) => bio = value,
+                        ),
+                        SizedBox(height: 20),
+                        Text('Are you open to joining bands?',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        SwitchListTile(
+                          title: Text(joinBands
+                              ? 'Yes, I want to join bands'
+                              : 'No, I don’t want to join bands'),
+                          value: joinBands,
+                          onChanged: (value) =>
+                              setState(() => joinBands = value),
+                        ),
+                        SizedBox(height: 20),
+                        Center(
+                          child: ElevatedButton(
+                            onPressed: isSubmitting ? null : _submitProfile,
+                            child: Text('Submit',
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF380230),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-
-          // "Skip →" Button at Bottom Right
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: TextButton(
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => LoginForm(),)); // Change as per your navigation
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Skip',
-                      style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
-                  SizedBox(width: 5),
-                  Icon(Icons.arrow_forward, color: Colors.grey),
-                ],
-              ),
-            ),
           ),
         ],
       ),
     );
   }
+
   Widget _buildProfileCard() {
     return Container(
       width: 360,
@@ -299,25 +289,49 @@ class _ArtistProfileState extends State<ArtistProfile> {
           _buildProfileDetail("Name", userName),
           _buildProfileDetail("Email", userEmail),
           _buildProfileDetail("Artist Type", artistType),
-          if (artistType == 'Other') _buildProfileDetail("Other", otherArtistType),
+          if (artistType == 'Other')
+            _buildProfileDetail("Other", otherArtistType),
           _buildProfileDetail("Bio", bio),
           _buildProfileDetail("Open to Bands", joinBands ? 'Yes' : 'No'),
           SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                isFormFilled = false;
-              });
-            },
-            child: Text('Edit Profile', style: TextStyle(fontSize: 16)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    isFormFilled = false;
+                  });
+                },
+                child: Text('Edit Profile', style: TextStyle(fontSize: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
               ),
-            ),
-          ),
+              //SizedBox(width: 60),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GroupList(),
+                      ));
+                },
+                child: Text('Groups', style: TextStyle(fontSize: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+              ),
+            ],
+          )
         ],
       ),
     );
@@ -331,28 +345,33 @@ class _ArtistProfileState extends State<ArtistProfile> {
         children: [
           Text(
             title,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white70),
           ),
           Text(
             value ?? "N/A",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ],
       ),
     );
   }
 
-
-
-Widget _buildTextField(String label, String initialValue, Function(String) onChanged) {
+  Widget _buildTextField(
+      String label, String initialValue, Function(String) onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         TextFormField(
           initialValue: initialValue,
           decoration: _inputDecoration(),
-          validator: (value) => value!.isEmpty ? 'Please enter your $label' : null,
+          validator: (value) =>
+              value!.isEmpty ? 'Please enter your $label' : null,
           onChanged: onChanged,
         ),
       ],

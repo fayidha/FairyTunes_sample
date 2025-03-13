@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dupepro/chatlist.dart';
 import 'package:flutter/material.dart';
 import 'package:dupepro/model/teacher_model.dart';
 import 'package:dupepro/chat.dart';
@@ -19,9 +18,9 @@ class _TeacherPageState extends State<TeacherPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F1F8), // Light lavender background
+      backgroundColor: const Color(0xFFF3F1F8),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF380230), // Deep Purple
+        backgroundColor: const Color(0xFF380230),
         iconTheme: const IconThemeData(color: Colors.white),
         title: TextField(
           decoration: InputDecoration(
@@ -52,9 +51,10 @@ class _TeacherPageState extends State<TeacherPage> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('No teachers found'));
           }
+
           var teachers = snapshot.data!.docs.map((doc) {
             var data = doc.data() as Map<String, dynamic>;
-            return Teacher.fromMap(data); // Ensure imageUrl is included in the Teacher object
+            return Teacher.fromMap(data);
           }).where((teacher) {
             return teacher.name.toLowerCase().contains(searchQuery) ||
                 teacher.category.toLowerCase().contains(searchQuery);
@@ -71,7 +71,7 @@ class _TeacherPageState extends State<TeacherPage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => TeacherProfilePage(
-                        teacherId: teacher.teacherId,  // Ensure you're passing teacher.id
+                        teacherId: teacher.teacherId,
                         name: teacher.name,
                         phone: teacher.phone,
                         address: teacher.address,
@@ -84,7 +84,6 @@ class _TeacherPageState extends State<TeacherPage> {
                     ),
                   );
                 },
-
                 child: Card(
                   elevation: 4,
                   margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
@@ -94,7 +93,6 @@ class _TeacherPageState extends State<TeacherPage> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        // Profile Picture
                         CircleAvatar(
                           radius: 38,
                           backgroundColor: Colors.grey[300],
@@ -106,8 +104,6 @@ class _TeacherPageState extends State<TeacherPage> {
                               : null,
                         ),
                         const SizedBox(width: 15),
-
-                        // Teacher Details
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,13 +113,13 @@ class _TeacherPageState extends State<TeacherPage> {
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF380230), // Deep Purple
+                                  color: Color(0xFF380230),
                                 ),
                               ),
                               const SizedBox(height: 5),
                               Row(
                                 children: [
-                                  Icon(Icons.grid_view_rounded, color: Colors.grey, size: 18), // Updated category icon
+                                  Icon(Icons.grid_view_rounded, color: Colors.grey, size: 18),
                                   const SizedBox(width: 5),
                                   Text(teacher.category, style: TextStyle(color: Colors.grey[800])),
                                 ],
@@ -139,8 +135,6 @@ class _TeacherPageState extends State<TeacherPage> {
                             ],
                           ),
                         ),
-
-                        // Chat Button with New Icon
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
@@ -156,8 +150,7 @@ class _TeacherPageState extends State<TeacherPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ChatScreen(teacher.teacherId, // Pass the teacher's ID
-                                    teacher.name, ),
+                                  builder: (context) => ChatScreen(teacher.teacherId, teacher.name),
                                 ),
                               );
                             },

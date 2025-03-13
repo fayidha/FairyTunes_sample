@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 class ChatScreen extends StatefulWidget {
   final String userId;
   final String userName;
-
   ChatScreen(this.userId, this.userName, {super.key});
 
   @override
@@ -14,7 +13,6 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late String currentUserId;
@@ -32,14 +30,23 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
+
     String chatRoomId = _getChatRoomId(currentUserId, widget.userId);
-    await _firestore.collection("chat_rooms").doc(chatRoomId).collection("messages").add({
+    DocumentReference chatRoomRef = _firestore.collection("chat_rooms").doc(chatRoomId);
+
+    await chatRoomRef.set({
+      "users": [currentUserId, widget.userId],
+      "lastMessage": _messageController.text.trim(),
+      "timestamp": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await chatRoomRef.collection("messages").add({
       "senderId": currentUserId,
       "message": _messageController.text.trim(),
       "timestamp": FieldValue.serverTimestamp(),
     });
+
     _messageController.clear();
-    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
   }
 
   Stream<QuerySnapshot> _getMessages() {
@@ -55,109 +62,65 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.userName), backgroundColor: Colors.white),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("asset/chat_page2.jpg"), // WhatsApp-style background
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _getMessages(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-                  var messages = snapshot.data!.docs;
-                  return ListView.builder(
-                    controller: _scrollController,
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      var message = messages[index];
-                      bool isMe = message["senderId"] == currentUserId;
-                      return Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                          padding: EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isMe ? Color(0xFF380230) : Colors.grey,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              topRight: Radius.circular(12),
-                              bottomLeft: isMe ? Radius.circular(12) : Radius.zero,
-                              bottomRight: isMe ? Radius.zero : Radius.circular(12),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment:
-                            isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                message["message"],
-                                style: TextStyle(
-                                  color: isMe ? Colors.white : Colors.black87,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                message["timestamp"] != null
-                                    ? (message["timestamp"] as Timestamp)
-                                    .toDate()
-                                    .toLocal()
-                                    .toString()
-                                    .substring(11, 16)
-                                    : "...",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isMe ? Colors.white70 : Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
+      appBar: AppBar(title: Text("Chat with ${widget.userName}")),
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _getMessages(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                var messages = snapshot.data!.docs;
+                return ListView.builder(
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    var message = messages[index];
+                    bool isMe = message["senderId"] == currentUserId;
+
+                    return Align(
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isMe ? Colors.blue : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        hintText: "Type a message...",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
+                        child: Text(
+                          message["message"],
+                          style: TextStyle(color: isMe ? Colors.white : Colors.black),
                         ),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       ),
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  CircleAvatar(
-                    backgroundColor: Color(0xFF380230),
-                    child: IconButton(
-                      icon: Icon(Icons.send, color: Colors.white),
-                      onPressed: _sendMessage,
-                    ),
-                  ),
-                ],
-              ),
+                    );
+                  },
+                );
+              },
             ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(18.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: "Type a message...",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.send, color: Colors.blue),
+                  onPressed: _sendMessage,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
