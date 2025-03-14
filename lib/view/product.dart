@@ -11,6 +11,8 @@ class ProductList extends StatefulWidget {
 class _ProductListState extends State<ProductList> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  get productId => null;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,7 +53,7 @@ class _ProductListState extends State<ProductList> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ProductDetail(product: product),
+                      builder: (context) => ProductDetail(productId: product)
                     ),
                   );
                 },

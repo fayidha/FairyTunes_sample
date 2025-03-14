@@ -33,11 +33,11 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-
   Future<void> _uploadImage() async {
     try {
       String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference storageRef = FirebaseStorage.instance.ref().child('user_images/$fileName.jpg');
+      Reference storageRef =
+          FirebaseStorage.instance.ref().child('user_images/$fileName.jpg');
 
       UploadTask uploadTask = storageRef.putFile(_imageFile);
 
@@ -45,14 +45,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
       String imageUrl = await taskSnapshot.ref.getDownloadURL();
 
-
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
           'userProfile': imageUrl,
         });
 
-        await FirebaseFirestore.instance.collection('teachers').doc(user.uid).update({
+        await FirebaseFirestore.instance
+            .collection('teachers')
+            .doc(user.uid)
+            .update({
           'imageUrl': imageUrl,
         });
       }
@@ -64,11 +69,11 @@ class _ProfilePageState extends State<ProfilePage> {
       print('Image uploaded successfully: $imageUrl');
     } catch (e) {
       print('Failed to upload image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
     }
   }
 
-  
   @override
   void initState() {
     super.initState();
@@ -86,12 +91,12 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           name = userDoc['name'];
           email = userDoc['email'];
-          profileImage = userDoc['userProfile'] ?? ''; // Default to empty string if no image exists
+          profileImage = userDoc['userProfile'] ??
+              ''; // Default to empty string if no image exists
         });
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -129,8 +134,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => Navigator.push(
-                      context, MaterialPageRoute(builder: (_) => Editprofile())),
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => Editprofile())),
                   child: Icon(Icons.edit, color: Colors.grey, size: 20),
                 ),
               ],
@@ -196,7 +201,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _carouselCard(BuildContext context, String title, String subtitle, IconData icon) {
+  Widget _carouselCard(
+      BuildContext context, String title, String subtitle, IconData icon) {
     return GestureDetector(
       onTap: () {
         if (title == "Create a Artist Profile") {

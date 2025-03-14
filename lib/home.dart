@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/Teacher_dash.dart';
+import 'package:dupepro/bookDetail.dart';
 import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
 import 'package:dupepro/model/Product_model.dart';
@@ -8,6 +9,7 @@ import 'package:dupepro/troups.dart';
 import 'package:dupepro/videoplayer.dart';
 import 'package:dupepro/view/detailPage.dart';
 import 'package:dupepro/view/login.dart';
+import 'package:dupepro/view/logovdo.dart';
 import 'package:dupepro/view/product.dart';
 import 'package:dupepro/view/teachers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,12 +28,38 @@ class _HomePageState extends State<HomePage> {
    String _userEmail="No Email Found";
    String? _userImageUrl;
 
+  get productId => null;
+
   @override
   void initState() {
     super.initState();
     _loadUserSession();
+    _fetchCarouselImages();
   }
 
+   List<String> carouselImages = [];
+
+   Future<void> _fetchCarouselImages() async {
+     try {
+       QuerySnapshot querySnapshot =
+       await FirebaseFirestore.instance.collection('groups').get();
+
+       List<String> fetchedImages = [];
+
+       for (var doc in querySnapshot.docs) {
+         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+         if (data.containsKey('images') && data['images'] is List) {
+           fetchedImages.addAll(List<String>.from(data['images']));
+         }
+       }
+
+       setState(() {
+         carouselImages = fetchedImages;
+       });
+     } catch (e) {
+       print("Error fetching carousel images: $e");
+     }
+   }
 
   Future<void> _loadUserSession() async {
     Map<String, dynamic>? userDetails = await Session.getUserDetails();
@@ -46,24 +74,28 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: Text('𝔽𝕒𝕚𝕣𝕪𝕋𝕦𝕟𝕖𝕤',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),),
         iconTheme: IconThemeData(color: Colors.white),
-        backgroundColor: Color(0xFF380230),
-        toolbarHeight: 70,
-        title: TextField(
-          decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search, color: Color(0xFF380230)),
-            hintText: 'Search troupes, products, teachers...',
-            hintStyle: TextStyle(color: Colors.white70),
-            filled: true,
-            fillColor: Colors.white24,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide.none,
-            ),
-          ),
-          style: TextStyle(color: Color(0xFF380230)),
-          onChanged: (value) => print('search clicked!'),
-        ),
+        backgroundColor: Color(0xFF380230).withOpacity(0.9),
+        elevation: 39,
+        centerTitle: true,
+        toolbarHeight: 100,
+        // toolbarHeight: 70,
+        // title: TextField(
+        //   decoration: InputDecoration(
+        //     prefixIcon: Icon(Icons.search, color: Color(0xFF380230)),
+        //     hintText: 'Search troupes, products, teachers...',
+        //     hintStyle: TextStyle(color: Colors.white70),
+        //     filled: true,
+        //     fillColor: Colors.white24,
+        //     border: OutlineInputBorder(
+        //       borderRadius: BorderRadius.circular(30),
+        //       borderSide: BorderSide.none,
+        //     ),
+        //   ),
+        //   style: TextStyle(color: Color(0xFF380230)),
+        //   onChanged: (value) => print('search clicked!'),
+        // ),
       ),
       drawer: Drawer(
         child: ListView(
@@ -148,7 +180,8 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             SizedBox(height: 20),
-            Image.asset('asset/ft1.PNG'),
+            // Image.asset('asset/ft1.PNG'),
+            VideoWidget(),
             SizedBox(height: 40),
             Text(
               "Select Your Best Music Products Today!",
@@ -206,7 +239,7 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ProductDetail(product: product),
+                            builder: (context) => ProductDetail(productId: product)
                           ),
                         );
                       },
@@ -528,26 +561,72 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 50),
 
-            // Music Bands Carousel
-            CarouselSlider(
-              items: [
-                Image.asset('asset/band1.jpeg',
-                    fit: BoxFit.cover, width: double.infinity),
-                Image.asset('asset/band2.webp',
-                    fit: BoxFit.cover, width: double.infinity),
-                Image.asset('asset/band4.jpg',
-                    fit: BoxFit.cover, width: double.infinity),
-              ],
-              options: CarouselOptions(
-                height: 150,
-                enlargeCenterPage: true,
-                enableInfiniteScroll: true,
-                autoPlay: true,
-                autoPlayInterval: Duration(seconds: 5),
-                aspectRatio: 16 / 9,
-                viewportFraction: 0.8,
-              ),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('groups').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text("No groups available"));
+                }
+
+                List<Map<String, dynamic>> allImagesWithGroups = [];
+
+                for (var doc in snapshot.data!.docs) {
+                  List<dynamic>? images = doc['images'];
+                  if (images != null && images.isNotEmpty) {
+                    for (String imageUrl in images.cast<String>()) {
+                      allImagesWithGroups.add({'imageUrl': imageUrl, 'groupId': doc.id});
+                    }
+                  }
+                }
+
+                if (allImagesWithGroups.isEmpty) {
+                  return Center(child: Text("No images available"));
+                }
+
+                return CarouselSlider(
+                  items: allImagesWithGroups.map((item) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TroupDetail(groupId: item['groupId']),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          item['imageUrl'],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(child: CircularProgressIndicator());
+                          },
+                          errorBuilder: (context, error, stackTrace) =>
+                              Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  options: CarouselOptions(
+                    height: 150,
+                    enlargeCenterPage: true,
+                    enableInfiniteScroll: true,
+                    autoPlay: true,
+                    autoPlayInterval: Duration(seconds: 5),
+                    aspectRatio: 16 / 9,
+                    viewportFraction: 0.8,
+                  ),
+                );
+              },
             ),
+
 
             const SizedBox(height: 30),
             const Divider(thickness: 1, color: Colors.grey),

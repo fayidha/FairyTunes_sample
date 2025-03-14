@@ -25,6 +25,27 @@ class _BookNowState extends State<BookNow> {
   String? _userName;
   String? _userEmail;
   bool _isLoading = true;
+  String? _selectedEventType; // New variable to store the selected event type
+
+  // List of event types for the dropdown
+  final List<String> _eventTypes = [
+    'Wedding',
+    'College Events',
+    'Hostel Events',
+    'School Events',
+    'Anniversary',
+    'Birthday',
+    'Bachelor Party',
+    'Residents Events',
+    'Film Shows',
+    'Club Events',
+    'Seasonal Party',
+    'New Year Party',
+    'Onam Celebration',
+    'Christmas',
+    'Eid',
+    'Other'
+  ];
 
   @override
   void initState() {
@@ -114,8 +135,9 @@ class _BookNowState extends State<BookNow> {
         'programDate': _programDateController.text,
         'programTime': _programTimeController.text,
         'eventLocation': _eventLocationController.text,
+        'eventType': _selectedEventType, // Add selected event type
         'timestamp': FieldValue.serverTimestamp(),
-        'status': 'Pending' // Default status
+        'status': 'Booked'
       };
 
       try {
@@ -132,9 +154,9 @@ class _BookNowState extends State<BookNow> {
           ),
         );
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('')),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(content: Text('')),
+        // );
       } catch (e) {
         print("Error saving booking: $e");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -143,7 +165,6 @@ class _BookNowState extends State<BookNow> {
       }
     }
   }
-
 
   @override
   void dispose() {
@@ -274,6 +295,27 @@ class _BookNowState extends State<BookNow> {
                         ),
                         validator: (value) => value!.isEmpty ? 'Please enter the event location' : null,
                       ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedEventType,
+                        decoration: InputDecoration(
+                          labelText: 'Event Type',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                          prefixIcon: Icon(Icons.event),
+                        ),
+                        items: _eventTypes.map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedEventType = newValue;
+                          });
+                        },
+                        validator: (value) => value == null ? 'Please select an event type' : null,
+                      ),
                       const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: _submitForm,
@@ -301,7 +343,6 @@ class _BookNowState extends State<BookNow> {
                           style: TextStyle(fontSize: 18),
                         ),
                       )
-
                     ],
                   ),
                 ),

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dupepro/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -16,7 +17,7 @@ class CompanyAdd extends StatefulWidget {
 class _CompanyAddState extends State<CompanyAdd> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
-  XFile? _image; // Nullable type for image
+  XFile? _image;
 
   // Fields to store user data
   String _name = "";
@@ -37,17 +38,33 @@ class _CompanyAddState extends State<CompanyAdd> {
   // Fetch user and seller details
   Future<void> _fetchUserDetails() async {
     try {
-      Map<String, dynamic>? userDetails = await Session.getUserDetails();
-      if (userDetails != null) {
-        setState(() {
-          _name = userDetails['name'] ?? 'Not Available';
-          _email = userDetails['email'] ?? 'Not Available';
+      Map<String, String?> session = await Session.getSession();
+      String? uid = session['uid'];
 
-          print('UserName: >...................... $_name');
-        });
-        await _fetchSellerDetails();
+      if (uid == null || uid.isEmpty) {
+        print("Error: UID not found in session.");
+        setState(() => _isFetchingUserData = false);
+        return;
       }
 
+      DocumentSnapshot userSnapshot =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (userSnapshot.exists) {
+        Map<String, dynamic> userData =
+            userSnapshot.data() as Map<String, dynamic>;
+
+        setState(() {
+          _name = userData['name'] ?? 'Not Available';
+          _email = userData['email'] ?? 'Not Available';
+
+          bool isSeller = userData['isSeller'] ?? false;
+          _isEditing = !isSeller;
+
+          print('UserName: $_name');
+          print('isSeller: $isSeller');
+        });
+      }
     } catch (e) {
       print("Error fetching user details: $e");
     }
@@ -56,20 +73,36 @@ class _CompanyAddState extends State<CompanyAdd> {
 
   Future<void> _fetchSellerDetails() async {
     try {
+      // Get session details
+      Map<String, String?> session = await Session.getSession();
+      String? uid = session['uid']; // Fetch UID from session
+
+      if (uid == null || uid.isEmpty) {
+        print("Error: UID not found in session.");
+        return;
+      }
+
+      // Fetch seller details using UID
       DocumentSnapshot sellerSnapshot =
-      await FirebaseFirestore.instance.collection('sellers').doc(_email).get();
+          await FirebaseFirestore.instance.collection('sellers').doc(uid).get();
+
       if (sellerSnapshot.exists) {
-        Map<String, dynamic> sellerData = sellerSnapshot.data() as Map<String, dynamic>;
+        Map<String, dynamic> sellerData =
+            sellerSnapshot.data() as Map<String, dynamic>;
+
         setState(() {
           _companyName = sellerData['companyName'] ?? '';
           _phone = sellerData['phone'] ?? '';
           _address = sellerData['address'] ?? '';
           _productCategory = sellerData['productCategory'] ?? '';
-          print('Company Name: ......................... $_companyName');
-          print('Company Name: ......................... $_phone');
-          print('Company Name: ......................... $_address');
-          print('Company Name: .........................$_productCategory');
+
+          print('Company Name: $_companyName');
+          print('Phone: $_phone');
+          print('Address: $_address');
+          print('Product Category: $_productCategory');
         });
+      } else {
+        print("No seller details found for UID: $uid");
       }
     } catch (e) {
       print("Error fetching seller details: $e");
@@ -78,7 +111,8 @@ class _CompanyAddState extends State<CompanyAdd> {
 
   // Method to pick an image from the gallery
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = pickedFile;
@@ -91,20 +125,37 @@ class _CompanyAddState extends State<CompanyAdd> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true); // Show loading indicator
 
+      // Retrieve session details to get UID
+      Map<String, String?> session = await Session.getSession();
+      String? uid = session['uid'];
+
       Seller seller = Seller(
-        uid: "", // UID will be fetched automatically from the current user
+        uid: "",
         companyName: _companyName,
         email: _email,
         phone: _phone,
         address: _address,
         productCategory: _productCategory,
-        profileImage: _image?.path,  // Use picked image for profile
+        profileImage: _image?.path, // Use picked image for profile
       );
 
       try {
-        await _controller.addSeller(seller); // Add the seller using the controller
+        await _controller
+            .addSeller(seller); // Add the seller using the controller
 
-        setState(() => _isLoading = false); // Hide loading indicator
+        // Update the 'users' collection to mark the user as a seller
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'isSeller': true,
+        });
+
+        setState(() => _isLoading = false);
+
+        setState(() => _isLoading = false);
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfilePage(),
+            ));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Seller Data Saved")),
         );
@@ -115,8 +166,12 @@ class _CompanyAddState extends State<CompanyAdd> {
         );
       }
     }
-    if (_companyName.isEmpty || _phone.isEmpty || _address.isEmpty || _productCategory.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Please fill all fields")));
+    if (_companyName.isEmpty ||
+        _phone.isEmpty ||
+        _address.isEmpty ||
+        _productCategory.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Please fill all fields")));
       return;
     }
   }
@@ -124,27 +179,30 @@ class _CompanyAddState extends State<CompanyAdd> {
   @override
   void initState() {
     super.initState();
-    _fetchUserDetails(); // Fetch user details when screen is loaded
+    _fetchUserDetails();
+    _fetchSellerDetails();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Seller Registration", style: TextStyle(color: Colors.white)),
+        title: const Text("Seller Registration",
+            style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF380230),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: _isFetchingUserData
-            ? const Center(child: CircularProgressIndicator()) // Show loading spinner while fetching user data
+            ? const Center(
+                child:
+                    CircularProgressIndicator()) // Show loading spinner while fetching user data
             : Column(
-          children: [
-            // If user is editing, show the editable form, else show profile card
-            _isEditing ? _buildEditableForm() : _buildProfileCard(),
-          ],
-        ),
+                children: [
+                  _isEditing ? _buildEditableForm() : _buildProfileCard(),
+                ],
+              ),
       ),
     );
   }
@@ -178,9 +236,8 @@ class _CompanyAddState extends State<CompanyAdd> {
             // Profile Image
             CircleAvatar(
               radius: 50,
-              backgroundImage: _image != null
-                  ? FileImage(File(_image!.path))
-                  : null,
+              backgroundImage:
+                  _image != null ? FileImage(File(_image!.path)) : null,
               child: _image == null
                   ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
                   : null,
@@ -190,7 +247,10 @@ class _CompanyAddState extends State<CompanyAdd> {
             // Name
             Text(
               _name.isNotEmpty ? _name : 'No name available',
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
 
@@ -203,7 +263,9 @@ class _CompanyAddState extends State<CompanyAdd> {
 
             // Company Name
             Text(
-              _companyName.isNotEmpty ? _companyName : 'No company name available',
+              _companyName.isNotEmpty
+                  ? _companyName
+                  : 'No company name available',
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 10),
@@ -224,7 +286,9 @@ class _CompanyAddState extends State<CompanyAdd> {
 
             // Product Category
             Text(
-              _productCategory.isNotEmpty ? _productCategory : 'No product category available',
+              _productCategory.isNotEmpty
+                  ? _productCategory
+                  : 'No product category available',
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 20),
@@ -260,7 +324,8 @@ class _CompanyAddState extends State<CompanyAdd> {
             child: CircleAvatar(
               radius: 50,
               backgroundColor: Colors.grey[200],
-              backgroundImage: _image != null ? FileImage(File(_image!.path)) : null,
+              backgroundImage:
+                  _image != null ? FileImage(File(_image!.path)) : null,
               child: _image == null
                   ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
                   : null,
@@ -278,7 +343,10 @@ class _CompanyAddState extends State<CompanyAdd> {
           // Email Input (Editable)
           _buildTextField("Email", (value) {
             _email = value;
-          }, keyboardType: TextInputType.emailAddress, initialValue: _email, enabled: true),
+          },
+              keyboardType: TextInputType.emailAddress,
+              initialValue: _email,
+              enabled: true),
 
           const SizedBox(height: 10),
 
@@ -315,13 +383,13 @@ class _CompanyAddState extends State<CompanyAdd> {
             child: _isLoading
                 ? const CircularProgressIndicator() // Show spinner when loading
                 : ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF380230),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _saveSeller,
-              child: const Text("Save"),
-            ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF380230),
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _saveSeller,
+                    child: const Text("Save"),
+                  ),
           ),
         ],
       ),
@@ -330,7 +398,9 @@ class _CompanyAddState extends State<CompanyAdd> {
 
   // Helper method for creating text fields with optional initial values
   Widget _buildTextField(String label, Function(String) onChanged,
-      {String? initialValue, TextInputType keyboardType = TextInputType.text, bool enabled = true}) {
+      {String? initialValue,
+      TextInputType keyboardType = TextInputType.text,
+      bool enabled = true}) {
     return TextFormField(
       initialValue: initialValue,
       decoration: InputDecoration(labelText: label),

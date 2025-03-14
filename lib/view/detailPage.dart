@@ -7,9 +7,9 @@ import 'package:dupepro/view/seller_detail_page.dart';
 import 'package:dupepro/model/seller_model.dart';
 
 class ProductDetail extends StatefulWidget {
-  final dynamic product;
+  final dynamic productId;
 
-  const ProductDetail({Key? key, required this.product}) : super(key: key);
+  const ProductDetail({Key? key, required this.productId }) : super(key: key);
 
   @override
   _ProductDetailState createState() => _ProductDetailState();
@@ -22,7 +22,7 @@ class _ProductDetailState extends State<ProductDetail> {
 
   void _navigateToSellerPage() async {
     SellerController sellerController = SellerController();
-    Seller? seller = await sellerController.getSellerDetails(widget.product.uid);
+    Seller? seller = await sellerController.getSellerDetails(widget.productId.uid);
 
     if (seller != null) {
       Navigator.push(
@@ -47,8 +47,8 @@ class _ProductDetailState extends State<ProductDetail> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> colors = widget.product.colors ?? [];
-    List<String> sizes = widget.product.sizes ?? [];
+    List<String> colors = widget.productId.colors ?? [];
+    List<String> sizes = widget.productId.sizes ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -86,7 +86,7 @@ class _ProductDetailState extends State<ProductDetail> {
                     });
                   },
                 ),
-                items: widget.product.imageUrls.map<Widget>((imageUrl) {
+                items: widget.productId.imageUrls.map<Widget>((imageUrl) {
                   return ClipRRect(
                     borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
                     child: Image.network(
@@ -101,7 +101,7 @@ class _ProductDetailState extends State<ProductDetail> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  widget.product.imageUrls.length,
+                  widget.productId.imageUrls.length,
                       (index) => AnimatedContainer(
                     duration: Duration(milliseconds: 300),
                     margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -121,7 +121,7 @@ class _ProductDetailState extends State<ProductDetail> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.product.name,
+                      widget.productId.name,
                       style: GoogleFonts.lora(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -133,13 +133,13 @@ class _ProductDetailState extends State<ProductDetail> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Category: ${widget.product.category}",
+                          "Category: ${widget.productId.category}",
                           style: GoogleFonts.lora(fontSize: 14, color: Colors.white70),
                         ),
                         TextButton(
                           onPressed: _navigateToSellerPage,
                           child: Text(
-                            "Brand: ${widget.product.company}",
+                            "Brand: ${widget.productId.company}",
                             style: GoogleFonts.lora(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -152,7 +152,7 @@ class _ProductDetailState extends State<ProductDetail> {
                     ),
                     SizedBox(height: 10),
                     Text(
-                      widget.product.description,
+                      widget.productId.description,
                       style: GoogleFonts.lora(fontSize: 16, color: Colors.white70),
                     ),
                   ],
@@ -237,7 +237,7 @@ class _ProductDetailState extends State<ProductDetail> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  "₹${widget.product.price}",
+                                  "₹${widget.productId.price}",
                                   style: GoogleFonts.lora(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
@@ -245,7 +245,7 @@ class _ProductDetailState extends State<ProductDetail> {
                                   ),
                                 ),
                                 Text(
-                                  "Quantity: ${widget.product.quantity}",
+                                  "Quantity: ${widget.productId.quantity}",
                                   style: GoogleFonts.lora(fontSize: 16, color: Colors.white70),
                                 ),
                               ],
