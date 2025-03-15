@@ -79,8 +79,10 @@ class _GroupListState extends State<GroupList> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => GroupProfile(groupId: group['groupId']),
-                ),
+                  builder: (context) => GroupProfile(
+                groupId: group['groupId'],
+              ),
+                )
               );
             },
           );

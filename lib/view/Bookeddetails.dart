@@ -4,13 +4,11 @@ class BookingDetailsPage extends StatelessWidget {
   final Map<String, dynamic> bookingData;
   final String bookingId;
   final Function(String) onCancel;
-  final Function(String) onNewAction; // New button action callback
 
   BookingDetailsPage({
     required this.bookingData,
     required this.bookingId,
     required this.onCancel,
-    required this.onNewAction, // Required for new button action
   });
 
   @override
@@ -35,23 +33,19 @@ class BookingDetailsPage extends StatelessWidget {
                   _buildDetailCard(
                     'Status',
                     bookingData['status'],
-                    color: bookingData['status'] == 'Booked' ? Colors.green : Colors.red,
+                    color: _getStatusColor(bookingData['status']),
                   ),
                   _buildDetailCard('User Name', bookingData['userName']),
                   _buildDetailCard('User Email', bookingData['userEmail']),
                   _buildDetailCard('Phone', bookingData['phone']),
                   _buildDetailCard('Timestamp', bookingData['timestamp'].toDate().toString()),
-
-                  SizedBox(height: 10), // Space before new button
-
-
-                  SizedBox(height: 20), // Space before cancel button
+                  SizedBox(height: 20),
                 ],
               ),
             ),
           ),
 
-          // Cancel Booking Button (If status is "Booked")
+          // Cancel Booking Button (Only if status is "Booked")
           if (bookingData['status'] == 'Booked')
             Container(
               width: double.infinity,
@@ -99,5 +93,20 @@ class BookingDetailsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Function to set the color based on status
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Booked':
+        return Colors.green;
+      case 'Confirmed':
+        return Colors.blue;
+      case 'Cancelled':
+      case 'Denied':
+        return Colors.red;
+      default:
+        return Colors.black;
+    }
   }
 }

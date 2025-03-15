@@ -75,6 +75,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
             padding: EdgeInsets.all(10),
             children: snapshot.data!.docs.map((doc) {
               var data = doc.data() as Map<String, dynamic>;
+
               return Card(
                 margin: EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
@@ -87,7 +88,11 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                       Text(
                         'Status: ${data['status']}',
                         style: TextStyle(
-                          color: data['status'] == 'Booked' ? Colors.green : Colors.red,
+                          color: data['status'] == 'Booked'
+                              ? Colors.green
+                              : data['status'] == 'Confirmed'
+                              ? Colors.blue
+                              : Colors.red,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -101,12 +106,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                         builder: (context) => BookingDetailsPage(
                           bookingData: data,
                           bookingId: doc.id,
-                          onCancel: (id) {
-                            _cancelBooking(id); // Call the cancel function
-                          },
-                          onNewAction: (id) {
-                            print("New action triggered for booking ID: $id");
-                          },
+                          onCancel: _cancelBooking,
                         ),
                       ),
                     );

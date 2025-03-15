@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/Teacher_dash.dart';
 import 'package:dupepro/bookDetail.dart';
+import 'package:dupepro/controller/Product_Controller.dart';
 import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
 import 'package:dupepro/model/Product_model.dart';
@@ -11,6 +12,7 @@ import 'package:dupepro/view/detailPage.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:dupepro/view/logovdo.dart';
 import 'package:dupepro/view/product.dart';
+import 'package:dupepro/view/productcategory.dart';
 import 'package:dupepro/view/teachers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +29,8 @@ class _HomePageState extends State<HomePage> {
    String _userName="Unknown User";
    String _userEmail="No Email Found";
    String? _userImageUrl;
+   List<String> categories = [];
+   Map<String, String> categoryImages = {};
 
   get productId => null;
 
@@ -189,28 +193,79 @@ class _HomePageState extends State<HomePage> {
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                   fontStyle: FontStyle.italic,
-                  color: Colors.deepPurpleAccent),
+                  color: Colors.black),
             ),
             SizedBox(height: 40),
+
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.0),
               child: SizedBox(
-                height: 80,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: List.generate(
-                      6,
-                          (index) => Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 5.0),
-                        child: CircleAvatar(
-                          radius: 30,
-                          backgroundImage:
-                          AssetImage('asset/210379377.png'),
+                height: 120,
+                child: FutureBuilder<List<Product>>(
+                  future: ProductController().getAllProducts(), // Correct way to call the method
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator()); // Loading state
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text("Error: ${snapshot.error}")); // Show error
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text("No categories found")); // No data case
+                    }
+
+                    // Extract categories & images dynamically
+                    Map<String, String> categoryImages = {};
+                    for (var product in snapshot.data!) {
+                      categoryImages.putIfAbsent(product.category, () =>
+                      product.imageUrls.isNotEmpty ? product.imageUrls.first : 'assets/default.png');
+                    }
+
+                    List<String> categories = categoryImages.keys.toList();
+
+                    return ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        String category = categories[index];
+                        String imageUrl = categoryImages[category] ?? 'assets/default.png';
+
+                        return Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12.0),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductCategoryPage(selectedCategory: category),
+                                ),
+                              );
+                            },
+                            child: Column(
+                              children: [
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: Colors.grey[200],
+                                  backgroundImage: imageUrl.startsWith('http')
+                                      ? NetworkImage(imageUrl)
+                                      : AssetImage('assets/default.png') as ImageProvider,
+                                ),
+                                SizedBox(height: 5),
+                                Text(
+                                  category,
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                ),
+                              ],
                             ),
-                          )),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ),
+
+
+
             SizedBox(height: 40),
 
             StreamBuilder<QuerySnapshot>(

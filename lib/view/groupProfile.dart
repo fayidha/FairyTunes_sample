@@ -1,4 +1,4 @@
-
+import 'package:dupepro/view/TroupManageBookings.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -17,6 +17,8 @@ class _GroupProfileState extends State<GroupProfile> {
   Map<String, Map<String, dynamic>> membersData = {};
   Map<String, dynamic>? adminData;
   bool isLoading = true;
+
+
 
   @override
   void initState() {
@@ -166,6 +168,41 @@ class _GroupProfileState extends State<GroupProfile> {
               )
             else
               Text("No images available."),
+            SizedBox(height: 24),
+            // View Bookings Button
+            ElevatedButton(
+              onPressed: () {
+                if (groupData != null && groupData!['admin'] != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TroupManageBooking(
+                        groupId: widget.groupId,
+                        // Correctly passing admin ID
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Admin ID not available')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF380230),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 5,
+              ),
+              child: Text(
+                "View Bookings",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+
           ],
         ),
       ),
