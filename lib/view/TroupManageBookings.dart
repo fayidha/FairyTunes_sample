@@ -12,14 +12,14 @@ class TroupManageBooking extends StatefulWidget {
 }
 
 class _TroupManageBookingState extends State<TroupManageBooking> {
-  String? adminId; // Store group admin ID
-  String? currentUserId; // Store logged-in user ID
+  String? adminId;
+  String? currentUserId;
 
   @override
   void initState() {
     super.initState();
-    _fetchAdminId(); // Fetch adminId when screen loads
-    _fetchCurrentUser(); // Get currently logged-in user
+    _fetchAdminId();
+    _fetchCurrentUser();
   }
 
   Future<void> _fetchAdminId() async {
@@ -31,11 +31,9 @@ class _TroupManageBookingState extends State<TroupManageBooking> {
 
       if (groupSnapshot.exists) {
         setState(() {
-          adminId = groupSnapshot['admin']; // Ensure correct field name
+          adminId = groupSnapshot['admin'];
         });
         print("Fetched Group Admin ID: $adminId");
-      } else {
-        print("Group document does not exist!");
       }
     } catch (e) {
       print("Error fetching admin ID: $e");
@@ -67,7 +65,7 @@ class _TroupManageBookingState extends State<TroupManageBooking> {
     return Scaffold(
       appBar: AppBar(title: Text('Manage Troupe Bookings')),
       body: adminId == null || currentUserId == null
-          ? Center(child: CircularProgressIndicator()) // Show loader until data is fetched
+          ? Center(child: CircularProgressIndicator())
           : StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('bookings')
@@ -85,6 +83,7 @@ class _TroupManageBookingState extends State<TroupManageBooking> {
             padding: EdgeInsets.all(10),
             children: snapshot.data!.docs.map((doc) {
               var data = doc.data() as Map<String, dynamic>;
+              String status = data['status'];
 
               return Card(
                 margin: EdgeInsets.symmetric(vertical: 8),
@@ -99,31 +98,17 @@ class _TroupManageBookingState extends State<TroupManageBooking> {
                       Text('Email: ${data['userEmail']}'),
                       Text('Phone: ${data['phone']}'),
                       Text(
-                        'Status: ${data['status']}',
+                        'Status: $status',
                         style: TextStyle(
-                          color: data['status'] == 'Booked'
-                              ? Colors.green
-                              : (data['status'] == 'Confirmed' ? Colors.blue : Colors.red),
+                          color: _getStatusColor(status),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                  trailing: currentUserId == adminId && data['status'] == 'Booked'
-                      ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.check_circle, color: Colors.green),
-                        onPressed: () => _updateBookingStatus(doc.id, 'Confirmed'),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.cancel, color: Colors.red),
-                        onPressed: () => _updateBookingStatus(doc.id, 'Denied'),
-                      ),
-                    ],
-                  )
-                      : null, // Only show buttons if user is the admin
+                  trailing: currentUserId == adminId
+                      ? _buildAdminControls(doc.id, status)
+                      : null,
                 ),
               );
             }).toList(),
@@ -131,5 +116,45 @@ class _TroupManageBookingState extends State<TroupManageBooking> {
         },
       ),
     );
+  }
+
+  Widget _buildAdminControls(String bookingId, String status) {
+    if (status == 'Booked') {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(Icons.check_circle, color: Colors.blue),
+            onPressed: () => _updateBookingStatus(bookingId, 'Confirmed'),
+          ),
+          IconButton(
+            icon: Icon(Icons.cancel, color: Colors.red),
+            onPressed: () => _updateBookingStatus(bookingId, 'Denied'),
+          ),
+        ],
+      );
+    } else if (status == 'Confirmed') {
+      return IconButton(
+        icon: Icon(Icons.event_available, color: Colors.green),
+        onPressed: () => _updateBookingStatus(bookingId, 'Event Happened'),
+      );
+    }
+    return SizedBox(); // Empty space if no action is needed
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Booked':
+        return Colors.green;
+      case 'Confirmed':
+        return Colors.blue;
+      case 'Event Happened':
+        return Colors.green;
+      case 'Cancelled':
+      case 'Denied':
+        return Colors.red;
+      default:
+        return Colors.black;
+    }
   }
 }

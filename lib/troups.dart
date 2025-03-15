@@ -11,6 +11,7 @@ class _TroupePageState extends State<TroupePage> {
   bool isLoading = true;
   List<Map<String, dynamic>> troupes = [];
   List<Map<String, dynamic>> filteredTroupes = [];
+  Map<String, double> ratingsMap = {}; // Store average ratings
   bool isSearching = false;
   TextEditingController searchController = TextEditingController();
 
@@ -31,12 +32,53 @@ class _TroupePageState extends State<TroupePage> {
 
       setState(() {
         troupes = fetchedTroupes;
-        filteredTroupes = fetchedTroupes; // Initially show all troupes
-        isLoading = false;
+        filteredTroupes = fetchedTroupes;
       });
+
+      _fetchRatings(); // Fetch ratings after loading troupes
     } catch (e) {
       print("Error fetching troupes: $e");
       setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _fetchRatings() async {
+    try {
+      for (var troupe in troupes) {
+        String groupId = troupe['groupId'];
+        double avgRating = await _calculateAverageRating(groupId);
+        setState(() {
+          ratingsMap[groupId] = avgRating;
+        });
+      }
+      setState(() => isLoading = false);
+    } catch (e) {
+      print("Error fetching ratings: $e");
+    }
+  }
+
+  Future<double> _calculateAverageRating(String groupId) async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('bookings')
+          .where('groupId', isEqualTo: groupId)
+          .where('rating', isGreaterThan: 0) // Only consider valid ratings
+          .get();
+
+      if (snapshot.docs.isEmpty) return 0.0; // No ratings yet
+
+      double totalRating = 0;
+      int count = 0;
+
+      for (var doc in snapshot.docs) {
+        totalRating += (doc['rating'] as num).toDouble();
+        count++;
+      }
+
+      return count > 0 ? totalRating / count : 0.0;
+    } catch (e) {
+      print("Error calculating rating for group $groupId: $e");
+      return 0.0;
     }
   }
 
@@ -68,7 +110,8 @@ class _TroupePageState extends State<TroupePage> {
       )
           : Text(
         "Troupes",
-        style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
+        style:
+        TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
       ),
       backgroundColor: const Color(0xFF380230),
       iconTheme: const IconThemeData(color: Colors.white),
@@ -90,16 +133,24 @@ class _TroupePageState extends State<TroupePage> {
     );
   }
 
-  Widget _buildRatingStars() {
+  Widget _buildRatingStars(double rating) {
     return Row(
-      children: List.generate(
-        5,
-            (index) => Icon(
-          index < 4 ? Icons.star : Icons.star_border, // Dummy rating (4/5)
-          size: 16,
-          color: Colors.amber,
+      children: [
+        Row(
+          children: List.generate(5, (index) {
+            return Icon(
+              index < rating.round() ? Icons.star : Icons.star_border,
+              size: 16,
+              color: Colors.amber,
+            );
+          }),
         ),
-      ),
+        SizedBox(width: 6), // Add spacing between stars and number
+        Text(
+          rating.toStringAsFixed(1), // Show numeric rating (e.g., 4.3)
+          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 
@@ -130,20 +181,22 @@ class _TroupePageState extends State<TroupePage> {
           itemBuilder: (context, index) {
             var troupe = filteredTroupes[index];
             String groupName = troupe['groupName'] ?? 'Unnamed Troupe';
-            String imageUrl = (troupe['images'] != null && troupe['images'].isNotEmpty)
+            String groupId = troupe['groupId'];
+            String imageUrl =
+            (troupe['images'] != null && troupe['images'].isNotEmpty)
                 ? troupe['images'][0]
                 : 'https://via.placeholder.com/200';
+            double rating = ratingsMap[groupId] ?? 0.0; // Get rating
 
             return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => TroupDetail(groupId: troupes[index]['groupId']),
+                    builder: (context) =>
+                        TroupDetail(groupId: groupId),
                   ),
                 );
-
-
               },
               child: Stack(
                 children: [
@@ -194,19 +247,12 @@ class _TroupePageState extends State<TroupePage> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 6,
-                                color: Colors.black38,
-                                offset: Offset(1, 2),
-                              ),
-                            ],
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         SizedBox(height: 5),
-                        _buildRatingStars(),
+                        _buildRatingStars(rating),
                       ],
                     ),
                   ),

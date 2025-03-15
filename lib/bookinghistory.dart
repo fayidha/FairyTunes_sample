@@ -10,6 +10,7 @@ class MyBookingsPage extends StatefulWidget {
 
 class _MyBookingsPageState extends State<MyBookingsPage> {
   String? userId;
+  bool isDialogShowing = false; // Prevent multiple pop-ups
 
   @override
   void initState() {
@@ -52,6 +53,77 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     );
   }
 
+  Future<void> _submitRating(String bookingId, double rating) async {
+    await FirebaseFirestore.instance
+        .collection('bookings')
+        .doc(bookingId)
+        .update({'rating': rating});
+  }
+
+  void _showRatingDialog(String bookingId) {
+    if (isDialogShowing) return; // Prevent multiple popups
+    isDialogShowing = true;
+
+    double _selectedRating = 0; // Start with 0 stars
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Rate Your Experience'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Please rate the event experience:'),
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < _selectedRating ? Icons.star : Icons.star_border, // Initially empty stars
+                          color: Colors.amber,
+                          size: 35,
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            _selectedRating = (index + 1).toDouble(); // Update selected rating
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    isDialogShowing = false;
+                    Navigator.pop(context);
+                  },
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (_selectedRating > 0) { // Ensure user selects at least 1 star
+                      _submitRating(bookingId, _selectedRating);
+                      isDialogShowing = false;
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Text('Submit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((_) => isDialogShowing = false); // Reset flag when dialog closes
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,6 +147,14 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
             padding: EdgeInsets.all(10),
             children: snapshot.data!.docs.map((doc) {
               var data = doc.data() as Map<String, dynamic>;
+              String status = data['status'];
+
+              // Show the rating dialog only once when status is "Event Happened" and no rating is given
+              if (status == 'Event Happened' && data['rating'] == null) {
+                Future.delayed(Duration.zero, () {
+                  _showRatingDialog(doc.id);
+                });
+              }
 
               return Card(
                 margin: EdgeInsets.symmetric(vertical: 8),
@@ -86,13 +166,9 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                       Text('Date: ${data['programDate']}'),
                       Text('Time: ${data['programTime']}'),
                       Text(
-                        'Status: ${data['status']}',
+                        'Status: $status',
                         style: TextStyle(
-                          color: data['status'] == 'Booked'
-                              ? Colors.green
-                              : data['status'] == 'Confirmed'
-                              ? Colors.blue
-                              : Colors.red,
+                          color: _getStatusColor(status),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -118,5 +194,21 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
         },
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Booked':
+        return Colors.green;
+      case 'Confirmed':
+        return Colors.blue;
+      case 'Event Happened':
+        return Colors.green;
+      case 'Cancelled':
+      case 'Denied':
+        return Colors.red;
+      default:
+        return Colors.black;
+    }
   }
 }
