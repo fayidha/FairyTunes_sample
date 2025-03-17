@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/model/Product_model.dart';
+import 'package:dupepro/view/detailPage.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ProductCategoryPage extends StatefulWidget {
@@ -141,32 +142,67 @@ class _ProductCategoryPageState extends State<ProductCategoryPage> {
       itemCount: products.length,
       itemBuilder: (context, index) {
         Product product = products[index];
-        return Card(
-          elevation: 4,
-          margin: EdgeInsets.symmetric(vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListTile(
-            contentPadding: EdgeInsets.all(12),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: product.imageUrls.isNotEmpty
-                  ? Image.network(
-                product.imageUrls.first,
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-              )
-                  : Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+        return GestureDetector(
+          onTap: () {
+            // Navigate to ProductDetail page when tapped
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProductDetail(productId: product),
+              ),
+            );
+          },
+          child: Card(
+            elevation: 4,
+            margin: EdgeInsets.symmetric(vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  // Product Image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: product.imageUrls.isNotEmpty
+                        ? Image.network(
+                      product.imageUrls.first,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    )
+                        : Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                  ),
+                  SizedBox(width: 12),
+                  // Product Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          product.company,
+                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          '₹${product.price.toStringAsFixed(2)}',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Forward Icon
+                  Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
+                ],
+              ),
             ),
-            title: Text(
-              product.name,
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-            ),
-            subtitle: Text(
-              "Price: \$${product.price.toStringAsFixed(2)}",
-              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-            ),
-            trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
           ),
         );
       },

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -35,9 +36,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     for (int i = 0; i < selectedNotes.length; i++) {
       File file = File(selectedNotes[i]['file'].path!);
       String fileName = selectedNotes[i]['file'].name;
-      String noteId = _firestore.collection("notes").doc().id;
+      String noteId = _firestore
+          .collection("notes")
+          .doc()
+          .id;
 
-      TaskSnapshot uploadTask = await _storage.ref('notes/${user.uid}/$fileName').putFile(file);
+      TaskSnapshot uploadTask = await _storage.ref(
+          'notes/${user.uid}/$fileName').putFile(file);
       String fileUrl = await uploadTask.ref.getDownloadURL();
 
       await _firestore.collection("notes").doc(noteId).set({
@@ -51,7 +56,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${selectedNotes.length} PDFs uploaded successfully")),
+      SnackBar(
+          content: Text("${selectedNotes.length} PDFs uploaded successfully")),
     );
     setState(() {
       selectedNotes.clear();
@@ -74,7 +80,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             descriptionControllers.add(TextEditingController());
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("File '${file.name}' exceeds 5MB limit and was not added.")),
+              SnackBar(content: Text(
+                  "File '${file.name}' exceeds 5MB limit and was not added.")),
             );
           }
         }
@@ -85,28 +92,33 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   Future<void> deleteNote(String noteId) async {
     bool confirmDelete = await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Delete Note"),
-        content: Text("Are you sure you want to delete this note?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
+      builder: (context) =>
+          AlertDialog(
+            title: Text("Delete Note"),
+            content: Text("Are you sure you want to delete this note?"),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false),
+                  child: Text("Cancel")),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text("Delete", style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-        ],
-      ),
     ) ?? false;
 
     if (confirmDelete) {
       await _firestore.collection("notes").doc(noteId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Note deleted successfully")));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Note deleted successfully")));
     }
   }
 
   Future<void> editDescription(String noteId, String newDescription) async {
-    await _firestore.collection("notes").doc(noteId).update({"description": newDescription});
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Description updated successfully")));
+    await _firestore.collection("notes").doc(noteId).update(
+        {"description": newDescription});
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Description updated successfully")));
   }
 
   void viewPDF(String filePath) {
@@ -150,9 +162,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Welcome Music Teacher", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text("Welcome Music Teacher", style: TextStyle(
+              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
           SizedBox(height: 2),
-          Text("Manage your notes and chats", style: TextStyle(fontSize: 14, color: Colors.white70)),
+          Text("Manage your notes and chats",
+              style: TextStyle(fontSize: 14, color: Colors.white70)),
         ],
       ),
     );
@@ -161,13 +175,15 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   Widget _buildUploadNotesSection() {
     return Container(
       padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
       child: Column(
         children: [
           ElevatedButton.icon(
             onPressed: pickFiles,
             icon: Icon(Icons.upload_file, color: Colors.white),
-            label: Text("Select PDF Notes", style: TextStyle(color: Colors.white)),
+            label: Text(
+                "Select PDF Notes", style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
           ),
           Column(
@@ -175,10 +191,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               return Column(
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => viewPDF(selectedNotes[index]['file'].path!),
+                    onPressed: () =>
+                        viewPDF(selectedNotes[index]['file'].path!),
                     icon: Icon(Icons.picture_as_pdf, color: Colors.white),
-                    label: Text("View PDF", style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
+                    label: Text(
+                        "View PDF", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF380230)),
                   ),
                   TextField(
                     controller: descriptionControllers[index],
@@ -193,7 +212,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             ElevatedButton(
               onPressed: uploadNotes,
               child: Text("Upload Notes"),
-              style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF380230),
+                  foregroundColor: Colors.white),
             ),
         ],
       ),
@@ -201,15 +222,27 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 
   Widget _buildViewNotesSection() {
+    User? user = _auth.currentUser;
+    if (user == null) return Center(child: Text("Please log in"));
+
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection("notes").snapshots(),
+      stream: _firestore
+          .collection("notes")
+          .where("teacherId", isEqualTo: user.uid) // Filter notes by teacherId
+          .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return Center(child: CircularProgressIndicator());
         final notes = snapshot.data!.docs;
+
+        if (notes.isEmpty) {
+          return Center(child: Text("No notes uploaded yet."));
+        }
 
         return Column(
           children: notes.map((note) {
-            TextEditingController editController = TextEditingController(text: note['description']);
+            TextEditingController editController =
+            TextEditingController(text: note['description']);
             bool isEditing = false;
 
             return StatefulBuilder(
@@ -220,12 +253,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (!isEditing)
-                          Text(note['description']),
+                        if (!isEditing) Text(note['description']),
                         if (isEditing)
                           TextField(
                             controller: editController,
-                            decoration: InputDecoration(labelText: "Edit Description"),
+                            decoration: InputDecoration(
+                                labelText: "Edit Description"),
                           ),
                       ],
                     ),
@@ -236,7 +269,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                           IconButton(
                             icon: Icon(Icons.save),
                             onPressed: () async {
-                              await editDescription(note.id, editController.text);
+                              await editDescription(
+                                  note.id, editController.text);
                               setState(() {
                                 isEditing = false;
                               });
@@ -273,7 +307,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 }
 
 
-class PDFViewer extends StatelessWidget {
+  class PDFViewer extends StatelessWidget {
   final String filePath;
 
   PDFViewer({required this.filePath});

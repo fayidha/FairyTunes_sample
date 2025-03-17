@@ -1,11 +1,15 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/SuccessScreen.dart';
+import 'package:dupepro/Teacher_dash.dart';
+import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/controller/teacher_controller.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TeacherAdd extends StatefulWidget {
   const TeacherAdd({super.key});
@@ -17,6 +21,9 @@ class TeacherAdd extends StatefulWidget {
 class _TeacherAddState extends State<TeacherAdd> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
+  List<Map<String, dynamic>> selectedNotes = [];
+  final List<TextEditingController> descriptionControllers = [];
+
   XFile? _image;
   bool _isEditing = false;
 
@@ -112,40 +119,158 @@ class _TeacherAddState extends State<TeacherAdd> {
         _isLoading = true;
       });
 
-      String? imageUrl = await _uploadImage(); // Upload image and get URL
+      try {
+        // Retrieve session details to get UID
+        Map<String, String?> session = await Session.getSession();
+        String? uid = session['uid'];
 
-      // Use the fetched image URL from the users collection if no new image is selected
-      String finalImageUrl = imageUrl ?? _profileImage;
+        if (uid == null) {
+          throw Exception("User ID is null");
+        }
 
-      String? errorMessage = await _teacherController.registerTeacher(
-        name: _nameController.text,
-        email: _emailController.text,
-        phone: _phoneController.text,
-        category: _categoryController.text,
-        qualification: _qualificationController.text,
-        experience: _experienceController.text,
-        address: _addressController.text,
-        imageUrl: finalImageUrl, // Use the fetched image URL if no new image is selected
-      );
+        String? imageUrl = await _uploadImage(); // Upload image and get URL
 
-      setState(() {
-        _isLoading = false;
-      });
+        // Use the fetched image URL from the users collection if no new image is selected
+        String finalImageUrl = imageUrl ?? _profileImage;
 
-      if (errorMessage == null) {
+        String? errorMessage = await _teacherController.registerTeacher(
+          name: _nameController.text,
+          email: _emailController.text,
+          phone: _phoneController.text,
+          category: _categoryController.text,
+          qualification: _qualificationController.text,
+          experience: _experienceController.text,
+          address: _addressController.text,
+          imageUrl: finalImageUrl, // Use the fetched image URL if no new image is selected
+        );
+
+        if (errorMessage == null) {
+          // Update the 'users' collection to mark the user as a teacher
+          await FirebaseFirestore.instance.collection('users').doc(uid).update({
+            'isTeacher': true,
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Teacher registered successfully!")),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => SuccessScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $errorMessage")),
+          );
+        }
+      } catch (e) {
+        print("Error saving teacher: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Teacher registered successfully!")),
+          SnackBar(content: Text("Error: $e")),
         );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => SuccessScreen()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $errorMessage")),
-        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
       }
+    }
+  }
+  Future<void> pickFiles() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      allowMultiple: true,
+    );
+
+    if (result != null) {
+      setState(() {
+        for (var file in result.files) {
+          if (file.size < 5000000) {
+            selectedNotes.add({"file": file, "description": ""});
+            descriptionControllers.add(TextEditingController());
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("File '${file.name}' exceeds 5MB limit and was not added.")),
+            );
+          }
+        }
+      });
+    }
+  }
+
+  Future<void> uploadNotes() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    for (int i = 0; i < selectedNotes.length; i++) {
+      File file = File(selectedNotes[i]['file'].path!);
+      String fileName = selectedNotes[i]['file'].name;
+      String noteId = FirebaseFirestore.instance.collection("notes").doc().id;
+
+      TaskSnapshot uploadTask = await FirebaseStorage.instance
+          .ref('notes/${user.uid}/$fileName')
+          .putFile(file);
+      String fileUrl = await uploadTask.ref.getDownloadURL();
+
+      await FirebaseFirestore.instance.collection("notes").doc(noteId).set({
+        "noteId": noteId,
+        "teacherId": user.uid,
+        "noteName": fileName,
+        "fileUrl": fileUrl,
+        "description": descriptionControllers[i].text,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("${selectedNotes.length} PDFs uploaded successfully")),
+    );
+    setState(() {
+      selectedNotes.clear();
+      descriptionControllers.clear();
+    });
+  }
+
+  void viewPDF(String filePath) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PDFViewer(filePath: filePath)),
+    );
+  }
+
+  Future<void> editDescription(String noteId, String newDescription) async {
+    await FirebaseFirestore.instance.collection("notes").doc(noteId).update({
+      "description": newDescription,
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Description updated successfully")),
+    );
+  }
+
+  Future<void> deleteNote(String noteId) async {
+    bool confirmDelete = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Note"),
+        content: Text("Are you sure you want to delete this note?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (confirmDelete) {
+      await FirebaseFirestore.instance.collection("notes").doc(noteId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Note deleted successfully")),
+      );
     }
   }
 
@@ -169,7 +294,6 @@ class _TeacherAddState extends State<TeacherAdd> {
           }
 
           if (snapshot.hasData && snapshot.data!.exists) {
-            // User is already registered - show profile card
             Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
             return _isEditing ? _buildRegistrationForm(data) : _buildProfileCard(data);
           } else {
@@ -182,69 +306,237 @@ class _TeacherAddState extends State<TeacherAdd> {
   }
 
   Widget _buildProfileCard(Map<String, dynamic> data) {
-    return Center(
-      child: Container(
-        width: 360,
-        padding: const EdgeInsets.all(25),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF380230), Colors.blueGrey.shade900],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          SizedBox(
+            height: 10,
           ),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 15,
-              spreadRadius: 3,
-              offset: Offset(0, 8),
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 50, horizontal: 70),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF380230), Color(0xFF6A0D54)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(50),
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundImage: _profileImage.isNotEmpty
-                  ? NetworkImage(_profileImage) // Display the fetched profile image
-                  : const AssetImage('asset/210379377.png') as ImageProvider,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Welcome Music Teacher", style: TextStyle(
+                    fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                SizedBox(height: 2),
+                Text("Manage your notes and chats",
+                    style: TextStyle(fontSize: 14, color: Colors.white70)),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(data['name'] ?? "Unknown User",
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-            const SizedBox(height: 5),
-            Text(data['email'] ?? "unknown@gmail.com",
-                style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 5),
-            Text("Phone: ${data['phone'] ?? "N/A"}",
-                style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 5),
-            Text("Category: ${data['category'] ?? "N/A"}",
-                style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 5),
-            Text("Qualification: ${data['qualification'] ?? "N/A"}",
-                style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 5),
-            Text("Experience: ${data['experience'] ?? "N/A"}",
-                style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 5),
-            Text("Address: ${data['address'] ?? "N/A"}",
-                style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-              child: const Text("Edit Profile"),
+          ),
+          SizedBox(height: 20), // Spacing between header and profile card
+
+          // Profile Card
+          Container(
+            width: 360,
+            padding: const EdgeInsets.all(25),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF380230), Colors.blueGrey.shade900],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 15,
+                  spreadRadius: 3,
+                  offset: Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundImage: _profileImage.isNotEmpty
+                      ? NetworkImage(_profileImage) // Display the fetched profile image
+                      : const AssetImage('asset/210379377.png') as ImageProvider,
+                ),
+                const SizedBox(height: 10),
+                Text(data['name'] ?? "Unknown User",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 5),
+                Text(data['email'] ?? "unknown@gmail.com",
+                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                const SizedBox(height: 5),
+                Text("Phone: ${data['phone'] ?? "N/A"}",
+                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                const SizedBox(height: 5),
+                Text("Category: ${data['category'] ?? "N/A"}",
+                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                const SizedBox(height: 5),
+                Text("Qualification: ${data['qualification'] ?? "N/A"}",
+                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                const SizedBox(height: 5),
+                Text("Experience: ${data['experience'] ?? "N/A"}",
+                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                const SizedBox(height: 5),
+                Text("Address: ${data['address'] ?? "N/A"}",
+                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _isEditing = true;
+                    });
+                  },
+                  child: const Text("Edit Profile"),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 20), // Spacing between profile card and notes section
+
+          // Upload Notes Section
+          _buildUploadNotesSection(),
+          SizedBox(height: 20), // Spacing between upload and view notes sections
+
+          // View Notes Section
+          _buildViewNotesSection(),
+        ],
       ),
+    );
+  }
+
+  Widget _buildUploadNotesSection() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          ElevatedButton.icon(
+            onPressed: pickFiles,
+            icon: Icon(Icons.upload_file, color: Colors.white),
+            label: Text("Select PDF Notes", style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
+          ),
+          Column(
+            children: List.generate(selectedNotes.length, (index) {
+              return Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => viewPDF(selectedNotes[index]['file'].path!),
+                    icon: Icon(Icons.picture_as_pdf, color: Colors.white),
+                    label: Text("View PDF", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
+                  ),
+                  TextField(
+                    controller: descriptionControllers[index],
+                    decoration: InputDecoration(labelText: "Description"),
+                  ),
+                  SizedBox(height: 8),
+                ],
+              );
+            }),
+          ),
+          if (selectedNotes.isNotEmpty)
+            ElevatedButton(
+              onPressed: uploadNotes,
+              child: Text("Upload Notes"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF380230),
+                foregroundColor: Colors.white,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+// View Notes Section
+  Widget _buildViewNotesSection() {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Center(child: Text("Please log in"));
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection("notes")
+          .where("teacherId", isEqualTo: user.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+        final notes = snapshot.data!.docs;
+
+        if (notes.isEmpty) {
+          return Center(child: Text("No notes uploaded yet."));
+        }
+
+        return Column(
+          children: notes.map((note) {
+            TextEditingController editController = TextEditingController(text: note['description']);
+            bool isEditing = false;
+
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return Card(
+                  child: ListTile(
+                    title: Text(note['noteName']),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!isEditing) Text(note['description']),
+                        if (isEditing)
+                          TextField(
+                            controller: editController,
+                            decoration: InputDecoration(labelText: "Edit Description"),
+                          ),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isEditing)
+                          IconButton(
+                            icon: Icon(Icons.save),
+                            onPressed: () async {
+                              await editDescription(note.id, editController.text);
+                              setState(() {
+                                isEditing = false;
+                              });
+                            },
+                          ),
+                        if (!isEditing)
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () {
+                              setState(() {
+                                isEditing = true;
+                              });
+                            },
+                          ),
+                        IconButton(
+                          icon: Icon(Icons.remove_red_eye),
+                          onPressed: () => launch(note['fileUrl']),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => deleteNote(note.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }).toList(),
+        );
+      },
     );
   }
 

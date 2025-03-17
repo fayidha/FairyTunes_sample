@@ -14,6 +14,7 @@ import 'package:dupepro/view/logovdo.dart';
 import 'package:dupepro/view/product.dart';
 import 'package:dupepro/view/productcategory.dart';
 import 'package:dupepro/view/teachers.dart';
+import 'package:dupepro/view/wishlist.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
