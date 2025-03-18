@@ -19,18 +19,23 @@ class _CartPageState extends State<CartPage> {
   }
 
   Future<void> _loadCartItems() async {
-    List<CartItem> items = await _cartController.fetchCartItems();
-    setState(() {
-      cartItems = items;
-    });
+    try {
+      List<CartItem> items = await _cartController.fetchCartItems();
+      print("Fetched cart items: ${items.length}");
+      setState(() {
+        cartItems = items; // Ensure this updates the state
+      });
+    } catch (e) {
+      print("Error loading cart items: $e");
+    }
   }
 
   double getTotalPrice() {
     return cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
   }
 
-  void updateQuantity(String id, int newQuantity) async {
-    await _cartController.updateQuantity(id, newQuantity);
+  void updateQuantity(String id, int change) async {
+    await _cartController.updateQuantity(id, change);
     _loadCartItems();
   }
 
@@ -72,7 +77,14 @@ class _CartPageState extends State<CartPage> {
                       child: ListTile(
                         leading: Image.network(item.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
                         title: Text(item.name, style: GoogleFonts.lora(color: Colors.white)),
-                        subtitle: Text("₹${item.price}", style: GoogleFonts.lora(color: Colors.greenAccent)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("₹${item.price}", style: GoogleFonts.lora(color: Colors.greenAccent)),
+                            Text("Color: ${item.color}", style: GoogleFonts.lora(color: Colors.white70)),
+                            Text("Size: ${item.size}", style: GoogleFonts.lora(color: Colors.white70)),
+                          ],
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

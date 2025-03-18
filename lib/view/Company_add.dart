@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dupepro/bottomBar.dart';
 import 'package:dupepro/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -154,7 +155,7 @@ class _CompanyAddState extends State<CompanyAdd> {
         Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => ProfilePage(),
+              builder: (context) => BottomBarScreen(),
             ));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Seller Data Saved")),

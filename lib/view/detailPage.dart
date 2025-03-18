@@ -1,15 +1,15 @@
-import 'package:carousel_slider/carousel_slider.dart';
-import 'package:dupepro/cart.dart';
-import 'package:dupepro/controller/Seller_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:dupepro/view/seller_detail_page.dart';
-import 'package:dupepro/model/seller_model.dart';
+import 'package:dupepro/controller/cart_controller.dart';
+import 'package:dupepro/model/cart_model.dart';
+import 'package:dupepro/cart.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth to get uid
 
 class ProductDetail extends StatefulWidget {
   final dynamic productId;
 
-  const ProductDetail({Key? key, required this.productId }) : super(key: key);
+  const ProductDetail({Key? key, required this.productId}) : super(key: key);
 
   @override
   _ProductDetailState createState() => _ProductDetailState();
@@ -20,28 +20,49 @@ class _ProductDetailState extends State<ProductDetail> {
   String? _selectedColor;
   String? _selectedSize;
 
-  void _navigateToSellerPage() async {
-    SellerController sellerController = SellerController();
-    Seller? seller = await sellerController.getSellerDetails(widget.productId.uid);
-
-    if (seller != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SellerDetailPage(seller: seller),
-        ),
-      );
-    } else {
+  void _addToCart() async {
+    if (_selectedColor == null || _selectedSize == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Seller details not found!')),
+        SnackBar(content: Text('Please select color and size!')),
       );
+      return;
     }
-  }
 
-  void _navigateToCart() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => CartPage()),
+    CartController cartController = CartController();
+    User? user = FirebaseAuth.instance.currentUser; // Get current user
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You need to be logged in to add items to the cart!')),
+      );
+      return;
+    }
+
+    CartItem cartItem = CartItem(
+      id: widget.productId.id,
+      name: widget.productId.name,
+      price: widget.productId.price,
+      quantity: 1,
+      imageUrl: widget.productId.imageUrls[0],
+      color: _selectedColor!,
+      size: _selectedSize!,
+      uid: user.uid, // Add uid
+      productId: widget.productId.id, // Add productId
+    );
+
+    await cartController.addToCart(cartItem);
+
+    // Show a bottom popup message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${widget.productId.name} added to cart!'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: EdgeInsets.only(bottom: 20, left: 10, right: 10),
+        backgroundColor: Colors.green,
+      ),
     );
   }
 
@@ -57,7 +78,12 @@ class _ProductDetailState extends State<ProductDetail> {
         actions: [
           IconButton(
             icon: Icon(Icons.shopping_cart, color: Colors.white),
-            onPressed: _navigateToCart,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CartPage()),
+              );
+            },
           ),
         ],
       ),
@@ -137,7 +163,7 @@ class _ProductDetailState extends State<ProductDetail> {
                           style: GoogleFonts.lora(fontSize: 14, color: Colors.white70),
                         ),
                         TextButton(
-                          onPressed: _navigateToSellerPage,
+                          onPressed: () {},
                           child: Text(
                             "Brand: ${widget.productId.company}",
                             style: GoogleFonts.lora(
@@ -267,7 +293,7 @@ class _ProductDetailState extends State<ProductDetail> {
                                   child: Text("Buy Now", style: GoogleFonts.lora(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
                                 ),
                                 ElevatedButton(
-                                  onPressed: _navigateToCart,
+                                  onPressed: _addToCart,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
                                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),

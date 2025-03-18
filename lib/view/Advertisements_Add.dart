@@ -68,16 +68,14 @@ class _AddAdvertisementPageState extends State<AddAdvertisementPage> {
       );
       return;
     }
-
+    String? productId=widget.productId;
     List<String> imageUrls = await _uploadFiles(_images, "advertisements/images");
     List<String> videoUrls = await _uploadFiles(_videos, "advertisements/videos");
 
-    await _firestore.collection('advertisements').add({
-      'type': imageUrls.isNotEmpty ? 'image' : 'video',
-      'imageUrls': imageUrls,
-      'videoUrls': videoUrls,
-      'productId': widget.productId,
-      'timestamp': FieldValue.serverTimestamp(),
+    await _firestore.collection('products').doc(productId).update({
+      'advertisementImageUrls': imageUrls,
+      'advertisementVideoUrls': videoUrls,
+      'lastUpdated': FieldValue.serverTimestamp(),
     });
 
     ScaffoldMessenger.of(context).showSnackBar(

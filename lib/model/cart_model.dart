@@ -4,6 +4,10 @@ class CartItem {
   double price;
   int quantity;
   String imageUrl;
+  String color;
+  String size;
+  String uid; // Add uid
+  String productId; // Add productId
 
   CartItem({
     required this.id,
@@ -11,6 +15,10 @@ class CartItem {
     required this.price,
     required this.quantity,
     required this.imageUrl,
+    required this.color,
+    required this.size,
+    required this.uid, // Add uid
+    required this.productId, // Add productId
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +28,10 @@ class CartItem {
       'price': price,
       'quantity': quantity,
       'imageUrl': imageUrl,
+      'color': color,
+      'size': size,
+      'uid': uid, // Add uid
+      'productId': productId, // Add productId
     };
   }
 
@@ -30,6 +42,10 @@ class CartItem {
       price: map['price'].toDouble(),
       quantity: map['quantity'],
       imageUrl: map['imageUrl'],
+      color: map['color'],
+      size: map['size'],
+      uid: map['uid'], // Add uid
+      productId: map['productId'], // Add productId
     );
   }
 }

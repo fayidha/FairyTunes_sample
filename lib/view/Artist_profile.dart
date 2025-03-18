@@ -1,3 +1,6 @@
+import 'package:dupepro/bottomBar.dart';
+import 'package:dupepro/controller/session.dart';
+import 'package:dupepro/profile.dart';
 import 'package:dupepro/view/groupList.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:flutter/material.dart';
@@ -226,6 +229,46 @@ class _ArtistProfileState extends State<ArtistProfile> {
                           value: joinBands,
                           onChanged: (value) =>
                               setState(() => joinBands = value),
+                        ),
+                        SizedBox(height: 20),
+                        TextButton(
+                          onPressed: () async {
+                            // Check if a valid session exists
+                            Map<String, String?> sessionData = await Session.getSession();
+                            String? uid = sessionData['uid'];
+
+                            if (uid != null) {
+                              // Fetch user details from Firestore using the UID
+                              Map<String, dynamic>? userDetails = await Session.getUserDetailsByUid(uid);
+
+                              if (userDetails != null) {
+                                // Session is valid, navigate to ProfilePage
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BottomBarScreen(),
+                                  ),
+                                );
+                              } else {
+                                // Session is invalid, navigate to LoginPage
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => LoginForm(),
+                                  ),
+                                );
+                              }
+                            } else {
+                              // No session found, navigate to LoginPage
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LoginForm(),
+                                ),
+                              );
+                            }
+                          },
+                          child: Text("Not now!"),
                         ),
                         SizedBox(height: 20),
                         Center(

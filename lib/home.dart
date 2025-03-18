@@ -27,11 +27,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-   String _userName="Unknown User";
-   String _userEmail="No Email Found";
-   String? _userImageUrl;
-   List<String> categories = [];
-   Map<String, String> categoryImages = {};
+  String _userName = "Unknown User";
+  String _userEmail = "No Email Found";
+  String? _userImageUrl;
+  List<String> categories = [];
+  Map<String, String> categoryImages = {};
 
   get productId => null;
 
@@ -42,117 +42,124 @@ class _HomePageState extends State<HomePage> {
     _fetchCarouselImages();
   }
 
-   List<String> carouselImages = [];
+  List<String> carouselImages = [];
 
-   Future<void> _fetchCarouselImages() async {
-     try {
-       QuerySnapshot querySnapshot =
-       await FirebaseFirestore.instance.collection('groups').get();
+  Future<void> _fetchCarouselImages() async {
+    try {
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('groups').get();
 
-       List<String> fetchedImages = [];
+      List<String> fetchedImages = [];
 
-       for (var doc in querySnapshot.docs) {
-         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-         if (data.containsKey('images') && data['images'] is List) {
-           fetchedImages.addAll(List<String>.from(data['images']));
-         }
-       }
+      for (var doc in querySnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        if (data.containsKey('images') && data['images'] is List) {
+          fetchedImages.addAll(List<String>.from(data['images']));
+        }
+      }
 
-       setState(() {
-         carouselImages = fetchedImages;
-       });
-     } catch (e) {
-       print("Error fetching carousel images: $e");
-     }
-   }
+      setState(() {
+        carouselImages = fetchedImages;
+      });
+    } catch (e) {
+      print("Error fetching carousel images: $e");
+    }
+  }
 
   Future<void> _loadUserSession() async {
     Map<String, dynamic>? userDetails = await Session.getUserDetails();
 
     setState(() {
       _userName = userDetails?['name'];
-      _userEmail = userDetails?['email'] ;
+      _userEmail = userDetails?['email'];
       _userImageUrl = userDetails?['userProfile'];
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('𝔽𝕒𝕚𝕣𝕪𝕋𝕦𝕟𝕖𝕤',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),),
-        iconTheme: IconThemeData(color: Colors.white),
-        backgroundColor: Color(0xFF380230).withOpacity(0.9),
-        elevation: 39,
-        centerTitle: true,
-        toolbarHeight: 100,
-        // toolbarHeight: 70,
-        // title: TextField(
-        //   decoration: InputDecoration(
-        //     prefixIcon: Icon(Icons.search, color: Color(0xFF380230)),
-        //     hintText: 'Search troupes, products, teachers...',
-        //     hintStyle: TextStyle(color: Colors.white70),
-        //     filled: true,
-        //     fillColor: Colors.white24,
-        //     border: OutlineInputBorder(
-        //       borderRadius: BorderRadius.circular(30),
-        //       borderSide: BorderSide.none,
-        //     ),
-        //   ),
-        //   style: TextStyle(color: Color(0xFF380230)),
-        //   onChanged: (value) => print('search clicked!'),
-        // ),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            UserAccountsDrawerHeader(
-              accountName: Text(_userName),
-              accountEmail: Text(_userEmail),
-              currentAccountPicture: CircleAvatar(
-                backgroundImage: _userImageUrl != null
-                    ? NetworkImage(_userImageUrl!) // Load from URL
-                    : AssetImage('asset/music.jpg') as ImageProvider, // Default image if no URL
-              ),
-              decoration: BoxDecoration(color: Color(0xFF380230)),
-            ),
-            ListTile(
-              leading: Icon(Icons.home, color: Color(0xFF380230)),
-              title: Text('Home'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: Icon(Icons.settings, color: Color(0xFF380230)),
-              title: Text('Settings'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.black),
-              title: const Text("Log Out"),
-              onTap: ()  async {
-                try {
-                  await FirebaseAuth.instance.signOut(); // Logs out from Firebase
-                  await Session.clearSession(); // Clears SharedPreferences session
-
-                  // Navigate to login screen and remove all previous screens
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginForm()),
-                        (route) => false,
-                  );
-                } catch (e) {
-                  print("Logout error: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Logout failed! Please try again.")),
-                  );
-                }
-              }, // Call logout function
-            ),
-          ],
+        appBar: AppBar(
+          title: Text(
+            '𝔽𝕒𝕚𝕣𝕪𝕋𝕦𝕟𝕖𝕤',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          iconTheme: IconThemeData(color: Colors.white),
+          backgroundColor: Color(0xFF380230).withOpacity(0.9),
+          elevation: 39,
+          centerTitle: true,
+          toolbarHeight: 100,
+          // toolbarHeight: 70,
+          // title: TextField(
+          //   decoration: InputDecoration(
+          //     prefixIcon: Icon(Icons.search, color: Color(0xFF380230)),
+          //     hintText: 'Search troupes, products, teachers...',
+          //     hintStyle: TextStyle(color: Colors.white70),
+          //     filled: true,
+          //     fillColor: Colors.white24,
+          //     border: OutlineInputBorder(
+          //       borderRadius: BorderRadius.circular(30),
+          //       borderSide: BorderSide.none,
+          //     ),
+          //   ),
+          //   style: TextStyle(color: Color(0xFF380230)),
+          //   onChanged: (value) => print('search clicked!'),
+          // ),
         ),
-      ),
+        drawer: Drawer(
+          child: ListView(
+            children: [
+              UserAccountsDrawerHeader(
+                accountName: Text(_userName),
+                accountEmail: Text(_userEmail),
+                currentAccountPicture: CircleAvatar(
+                  backgroundImage: _userImageUrl != null
+                      ? NetworkImage(_userImageUrl!) // Load from URL
+                      : AssetImage('asset/music.jpg')
+                          as ImageProvider, // Default image if no URL
+                ),
+                decoration: BoxDecoration(color: Color(0xFF380230)),
+              ),
+              ListTile(
+                leading: Icon(Icons.home, color: Color(0xFF380230)),
+                title: Text('Home'),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: Icon(Icons.settings, color: Color(0xFF380230)),
+                title: Text('Settings'),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.black),
+                title: const Text("Log Out"),
+                onTap: () async {
+                  try {
+                    await FirebaseAuth.instance
+                        .signOut(); // Logs out from Firebase
+                    await Session
+                        .clearSession(); // Clears SharedPreferences session
 
-      body: SingleChildScrollView(
-        child: Column(
+                    // Navigate to login screen and remove all previous screens
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginForm()),
+                      (route) => false,
+                    );
+                  } catch (e) {
+                    print("Logout error: $e");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text("Logout failed! Please try again.")),
+                    );
+                  }
+                }, // Call logout function
+              ),
+            ],
+          ),
+        ),
+        body: SingleChildScrollView(
+            child: Column(
           children: [
             Container(
               width: double.infinity,
@@ -166,7 +173,11 @@ class _HomePageState extends State<HomePage> {
               ),
               child: GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder:(context) => DraggableContainerExample(),));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DraggableContainerExample(),
+                      ));
                 },
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,21 +214,29 @@ class _HomePageState extends State<HomePage> {
               child: SizedBox(
                 height: 120,
                 child: FutureBuilder<List<Product>>(
-                  future: ProductController().getAllProducts(), // Correct way to call the method
+                  future: ProductController().getAllProducts(),
+                  // Correct way to call the method
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator()); // Loading state
+                      return Center(
+                          child: CircularProgressIndicator()); // Loading state
                     } else if (snapshot.hasError) {
-                      return Center(child: Text("Error: ${snapshot.error}")); // Show error
+                      return Center(
+                          child:
+                              Text("Error: ${snapshot.error}")); // Show error
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(child: Text("No categories found")); // No data case
+                      return Center(
+                          child: Text("No categories found")); // No data case
                     }
 
                     // Extract categories & images dynamically
                     Map<String, String> categoryImages = {};
                     for (var product in snapshot.data!) {
-                      categoryImages.putIfAbsent(product.category, () =>
-                      product.imageUrls.isNotEmpty ? product.imageUrls.first : 'assets/default.png');
+                      categoryImages.putIfAbsent(
+                          product.category,
+                          () => product.imageUrls.isNotEmpty
+                              ? product.imageUrls.first
+                              : 'assets/default.png');
                     }
 
                     List<String> categories = categoryImages.keys.toList();
@@ -227,7 +246,8 @@ class _HomePageState extends State<HomePage> {
                       itemCount: categories.length,
                       itemBuilder: (context, index) {
                         String category = categories[index];
-                        String imageUrl = categoryImages[category] ?? 'assets/default.png';
+                        String imageUrl =
+                            categoryImages[category] ?? 'assets/default.png';
 
                         return Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12.0),
@@ -236,7 +256,8 @@ class _HomePageState extends State<HomePage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ProductCategoryPage(selectedCategory: category),
+                                  builder: (context) => ProductCategoryPage(
+                                      selectedCategory: category),
                                 ),
                               );
                             },
@@ -247,12 +268,15 @@ class _HomePageState extends State<HomePage> {
                                   backgroundColor: Colors.grey[200],
                                   backgroundImage: imageUrl.startsWith('http')
                                       ? NetworkImage(imageUrl)
-                                      : AssetImage('assets/default.png') as ImageProvider,
+                                      : AssetImage('assets/default.png')
+                                          as ImageProvider,
                                 ),
                                 SizedBox(height: 5),
                                 Text(
                                   category,
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
@@ -265,39 +289,52 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-
-
             SizedBox(height: 40),
 
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('advertisements').snapshots(),
+              stream:
+                  FirebaseFirestore.instance.collection('products').snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                List<Product> products = snapshot.data!.docs
+                    .map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+                    .toList();
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No advertisements available"));
+                  return const Center(
+                      child: Text("No advertisements available"));
                 }
 
-                List<Product> products = snapshot.data!.docs.map((doc) {
-                  return Product.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-                }).toList();
+                List<String> imageUrls = [];
+                for (var doc in snapshot.data!.docs) {
+                  if (doc
+                      .data()
+                      .toString()
+                      .contains('advertisementImageUrls')) {
+                    List<dynamic> images = doc['advertisementImageUrls'] ?? [];
+                    imageUrls.addAll(images.cast<String>());
+                  }
+                }
+
+                // If no images are found, show a message
+                if (imageUrls.isEmpty) {
+                  return const Center(
+                      child: Text("No image advertisements available"));
+                }
 
                 return CarouselSlider(
-                  items: products.map((product) {
-                    String imageUrl = (product.imageUrls.isNotEmpty)
-                        ? product.imageUrls.first
-                        : 'https://via.placeholder.com/150'; // Placeholder for missing images
-
+                  items: imageUrls.map((imageUrl) {
                     return GestureDetector(
                       onTap: () {
-                        Navigator.push(
+                      /*  Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ProductDetail(productId: product)
+                            builder: (context) =>
+                                ProductDetail(productId: products),
                           ),
-                        );
+                        );*/
                       },
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
@@ -306,50 +343,58 @@ class _HomePageState extends State<HomePage> {
                           fit: BoxFit.cover,
                           width: double.infinity,
                           errorBuilder: (context, error, stackTrace) =>
-                          const Center(
-                            child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                              const Center(
+                            child: Icon(Icons.broken_image,
+                                size: 50, color: Colors.grey),
                           ),
                         ),
                       ),
                     );
                   }).toList(),
                   options: CarouselOptions(
-                    height: 250,
-                    enlargeCenterPage: true,
-                    enableInfiniteScroll: true,
-                    autoPlay: true,
-                    autoPlayInterval: const Duration(seconds: 5),
-                    aspectRatio: 16 / 9,
-                    viewportFraction: 0.85, // Adjusted for better visibility
+                    autoPlay: true, // Auto-play the carousel
+                    enlargeCenterPage: true, // Enlarge the center item
+                    aspectRatio: 16 / 9, // Aspect ratio of the image
+                    viewportFraction:
+                        0.8, // Fraction of the viewport to show each item
                   ),
                 );
               },
             ),
-
-
             const SizedBox(height: 60),
 
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
               elevation: 12,
               margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('advertisements').snapshots(),
+                  stream: FirebaseFirestore.instance
+                      .collection('products')
+                      .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text("No video advertisements available"));
-                    }
-
                     List<String> videoUrls = [];
                     for (var doc in snapshot.data!.docs) {
-                      List<dynamic> videos = doc['videoUrls'] ?? [];
-                      videoUrls.addAll(videos.cast<String>());
+                      if (doc
+                          .data()
+                          .toString()
+                          .contains('advertisementVideoUrls')) {
+                        List<dynamic> videos =
+                            doc['advertisementVideoUrls'] ?? [];
+                        videoUrls.addAll(videos.cast<String>());
+                      }
+                    }
+
+                    // If no videos are found, show a message
+                    if (videoUrls.isEmpty) {
+                      return const Center(
+                          child: Text("No video advertisements available"));
                     }
 
                     return Column(
@@ -359,34 +404,41 @@ class _HomePageState extends State<HomePage> {
                           padding: EdgeInsets.all(8.0),
                           child: Text(
                             "🎥 Sponsored Video Advertisements",
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black),
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black),
                           ),
                         ),
                         CarouselSlider(
                           items: videoUrls
                               .map((url) => ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                VideoPlayerWidget(videoUrl: url),
-                                Positioned(
-                                  bottom: 10,
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        VideoPlayerWidget(videoUrl: url),
+                                        Positioned(
+                                          bottom: 10,
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 5),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black54,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              "Advertisement",
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    child: Text(
-                                      "Advertisement",
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ))
+                                  ))
                               .toList(),
                           options: CarouselOptions(
                             height: 250,
@@ -418,7 +470,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 30),
             Text('Choose your need! '),
-          Icon(Icons.check_box),
+            Icon(Icons.check_box),
             const SizedBox(height: 40),
             // Special Container with Gradient Background for Product, Troups, and Teachers
             Container(
@@ -427,15 +479,13 @@ class _HomePageState extends State<HomePage> {
                 gradient: LinearGradient(
                   colors: [
                     Colors.purpleAccent.withOpacity(0.3),
-                    Color(0xFF380230).withOpacity(0.7)  ,
-
+                    Color(0xFF380230).withOpacity(0.7),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(15),
               ),
-
               child: Column(
                 children: [
                   // Product Card
@@ -449,7 +499,8 @@ class _HomePageState extends State<HomePage> {
                     },
                     child: Card(
                       elevation: 30,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -465,7 +516,8 @@ class _HomePageState extends State<HomePage> {
                         child: Column(
                           children: [
                             ClipRRect(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(10)),
                               child: Image.asset(
                                 'asset/prod.avif',
                                 height: 100,
@@ -473,7 +525,6 @@ class _HomePageState extends State<HomePage> {
                                 fit: BoxFit.cover,
                               ),
                             ),
-
                             Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Row(
@@ -483,7 +534,9 @@ class _HomePageState extends State<HomePage> {
                                       size: 20, color: Color(0xFF380230)),
                                   SizedBox(width: 8),
                                   Text('Products',
-                                      style: TextStyle(fontSize: 16, color: Color(0xFF380230))),
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          color: Color(0xFF380230))),
                                 ],
                               ),
                             ),
@@ -505,7 +558,8 @@ class _HomePageState extends State<HomePage> {
                     },
                     child: Card(
                       elevation: 30,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -518,11 +572,11 @@ class _HomePageState extends State<HomePage> {
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-
                         child: Column(
                           children: [
                             ClipRRect(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(10)),
                               child: Image.asset(
                                 'asset/troups.jpg',
                                 height: 100,
@@ -535,10 +589,13 @@ class _HomePageState extends State<HomePage> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.group, size: 20, color: Color(0xFF380230)),
+                                  Icon(Icons.group,
+                                      size: 20, color: Color(0xFF380230)),
                                   SizedBox(width: 8),
                                   Text('Troups',
-                                      style: TextStyle(fontSize: 16, color: Color(0xFF380230))),
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          color: Color(0xFF380230))),
                                 ],
                               ),
                             ),
@@ -548,7 +605,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 10),
-
 
                   // Teachers Card
                   GestureDetector(
@@ -561,7 +617,8 @@ class _HomePageState extends State<HomePage> {
                     },
                     child: Card(
                       elevation: 30,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -577,7 +634,8 @@ class _HomePageState extends State<HomePage> {
                         child: Column(
                           children: [
                             ClipRRect(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(10)),
                               child: Image.asset(
                                 'asset/teach.jpg',
                                 height: 100,
@@ -590,10 +648,13 @@ class _HomePageState extends State<HomePage> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.school, size: 20, color: Color(0xFF380230)),
+                                  Icon(Icons.school,
+                                      size: 20, color: Color(0xFF380230)),
                                   SizedBox(width: 8),
                                   Text('Teachers',
-                                      style: TextStyle(fontSize: 16, color: Color(0xFF380230))),
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          color: Color(0xFF380230))),
                                 ],
                               ),
                             ),
@@ -618,7 +679,8 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 50),
 
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('groups').snapshots(),
+              stream:
+                  FirebaseFirestore.instance.collection('groups').snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
@@ -634,7 +696,8 @@ class _HomePageState extends State<HomePage> {
                   List<dynamic>? images = doc['images'];
                   if (images != null && images.isNotEmpty) {
                     for (String imageUrl in images.cast<String>()) {
-                      allImagesWithGroups.add({'imageUrl': imageUrl, 'groupId': doc.id});
+                      allImagesWithGroups
+                          .add({'imageUrl': imageUrl, 'groupId': doc.id});
                     }
                   }
                 }
@@ -650,7 +713,8 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => TroupDetail(groupId: item['groupId']),
+                            builder: (context) =>
+                                TroupDetail(groupId: item['groupId']),
                           ),
                         );
                       },
@@ -664,8 +728,10 @@ class _HomePageState extends State<HomePage> {
                             if (loadingProgress == null) return child;
                             return Center(child: CircularProgressIndicator());
                           },
-                          errorBuilder: (context, error, stackTrace) =>
-                              Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.broken_image,
+                              size: 50,
+                              color: Colors.grey),
                         ),
                       ),
                     );
@@ -683,23 +749,31 @@ class _HomePageState extends State<HomePage> {
               },
             ),
 
-
             const SizedBox(height: 30),
             const Divider(thickness: 1, color: Colors.grey),
             const SizedBox(height: 20),
 
             const SizedBox(height: 30),
-          ElevatedButton(onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => SellerDashboard(),));
-          }, child: Text('Seller!') ),
-            const SizedBox(height: 30),
-
-            ElevatedButton(onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherDashboard()));
-            }, child: Text('Teacher add notes') ),
+            // ElevatedButton(
+            //     onPressed: () {
+            //       Navigator.push(
+            //           context,
+            //           MaterialPageRoute(
+            //             builder: (context) => SellerDashboard(),
+            //           ));
+            //     },
+            //     child: Text('Seller!')),
+            // const SizedBox(height: 30),
+            //
+            // ElevatedButton(
+            //     onPressed: () {
+            //       Navigator.push(
+            //           context,
+            //           MaterialPageRoute(
+            //               builder: (context) => TeacherDashboard()));
+            //     },
+            //     child: Text('Teacher add notes')),
           ],
-        )
-      )
-    );
+        )));
   }
 }
