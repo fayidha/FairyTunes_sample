@@ -19,6 +19,7 @@ class BottomBarScreen extends StatefulWidget {
 class _BottomBarScreenState extends State<BottomBarScreen> {
   int _selectedIndex = 0;
   bool _isSeller = false;
+  User? _user;
 
   @override
   void initState() {
@@ -27,11 +28,11 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
   }
 
   Future<void> _checkIfSeller() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
+    _user = FirebaseAuth.instance.currentUser;
+    if (_user != null) {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(_user!.uid)
           .get();
       if (userDoc.exists) {
         setState(() {
@@ -45,7 +46,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
     List<Widget> pages = [
       HomePage(),
       History(),
-      CartPage(),
+      CartPage(uid: _user?.uid ?? ''),
       ChatListScreen(),
       ProfilePage(),
     ];

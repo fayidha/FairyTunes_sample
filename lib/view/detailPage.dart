@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dupepro/company_view.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -46,42 +48,60 @@ class _ProductDetailState extends State<ProductDetail> {
       imageUrl: widget.productId.imageUrls[0],
       color: _selectedColor!,
       size: _selectedSize!,
-      uid: user.uid, // Add uid
+      uid: user.uid,
       productId: widget.productId.id, // Add productId
     );
 
-    await cartController.addToCart(cartItem);
+    try {
+      await cartController.addToCart(cartItem);
 
-    // Show a bottom popup message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${widget.productId.name} added to cart!'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+      // Show a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${widget.productId.name} added to cart!'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: EdgeInsets.only(bottom: 20, left: 10, right: 10),
+          backgroundColor: Colors.green,
         ),
-        margin: EdgeInsets.only(bottom: 20, left: 10, right: 10),
-        backgroundColor: Colors.green,
-      ),
-    );
+      );
+    } catch (e) {
+      // Show an error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add item to cart: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     List<String> colors = widget.productId.colors ?? [];
     List<String> sizes = widget.productId.sizes ?? [];
+    User? user = FirebaseAuth.instance.currentUser; // Get current user
 
     return Scaffold(
       appBar: AppBar(
         title: Text("Product Details", style: GoogleFonts.lora(color: Colors.white)),
         backgroundColor: Color(0xFF451626),
+        iconTheme: IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: Icon(Icons.shopping_cart, color: Colors.white),
             onPressed: () {
+              if (user == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('You need to be logged in to view your cart!')),
+                );
+                return;
+              }
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => CartPage()),
+                MaterialPageRoute(builder: (context) => CartPage(uid: user.uid)),
               );
             },
           ),
@@ -163,7 +183,39 @@ class _ProductDetailState extends State<ProductDetail> {
                           style: GoogleFonts.lora(fontSize: 14, color: Colors.white70),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            String companyName = widget.productId.company;
+
+                            // Fetch seller details from Firestore
+                            DocumentSnapshot sellerSnapshot = await FirebaseFirestore.instance
+                                .collection('sellers')
+                                .where('companyName', isEqualTo: companyName)
+                                .get()
+                                .then((querySnapshot) => querySnapshot.docs.first);
+
+                            if (sellerSnapshot.exists) {
+                              Map<String, dynamic> sellerData = sellerSnapshot.data() as Map<String, dynamic>;
+
+                              // Navigate to SellerDetailPage
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SellerDetailPage(
+                                    companyName: sellerData['companyName'] ?? 'No Company Name',
+                                    phone: sellerData['phone'] ?? 'No Phone',
+                                    email: sellerData['email'] ?? 'No email',
+                                    address: sellerData['address'] ?? 'No Address',
+                                    productCategory: sellerData['productCategory'] ?? 'No Category',
+                                    profileImageUrl: sellerData['profileImage'] ?? '',
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Seller details not found')),
+                              );
+                            }
+                          },
                           child: Text(
                             "Brand: ${widget.productId.company}",
                             style: GoogleFonts.lora(

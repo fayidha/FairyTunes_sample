@@ -12,6 +12,7 @@ class ProductList extends StatefulWidget {
 class _ProductListState extends State<ProductList> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Set<String> wishlist = {}; // Track wishlist items
+  String searchQuery = ''; // Track search query
 
   @override
   void initState() {
@@ -46,7 +47,6 @@ class _ProductListState extends State<ProductList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Product Listing", style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF380230),
         iconTheme: IconThemeData(color: Colors.white),
         actions: [
@@ -60,6 +60,19 @@ class _ProductListState extends State<ProductList> {
             },
           ),
         ],
+        title: TextField(
+          decoration: InputDecoration(
+            hintText: 'Search by name or company...',
+            hintStyle: TextStyle(color: Colors.white70),
+            border: InputBorder.none,
+          ),
+          style: TextStyle(color: Colors.white),
+          onChanged: (value) {
+            setState(() {
+              searchQuery = value.toLowerCase();
+            });
+          },
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore.collection('products').orderBy('createdAt', descending: true).snapshots(),
@@ -76,6 +89,12 @@ class _ProductListState extends State<ProductList> {
               .map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>, doc.id))
               .toList();
 
+          // Filter products based on search query
+          List<Product> filteredProducts = products.where((product) {
+            return product.name.toLowerCase().contains(searchQuery) ||
+                product.company.toLowerCase().contains(searchQuery);
+          }).toList();
+
           return GridView.builder(
             padding: EdgeInsets.all(10),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -84,9 +103,9 @@ class _ProductListState extends State<ProductList> {
               mainAxisSpacing: 10,
               childAspectRatio: 0.8,
             ),
-            itemCount: products.length,
+            itemCount: filteredProducts.length,
             itemBuilder: (context, index) {
-              Product product = products[index];
+              Product product = filteredProducts[index];
               bool isWishlisted = wishlist.contains(product.id);
 
               return GestureDetector(

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/bottomBar.dart';
-import 'package:dupepro/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -27,6 +26,7 @@ class _CompanyAddState extends State<CompanyAdd> {
   String _phone = "";
   String _address = "";
   String _productCategory = "";
+  String? _profileImageUrl;
 
   // Controller for Seller operations
   final SellerController _controller = SellerController();
@@ -96,6 +96,7 @@ class _CompanyAddState extends State<CompanyAdd> {
           _phone = sellerData['phone'] ?? '';
           _address = sellerData['address'] ?? '';
           _productCategory = sellerData['productCategory'] ?? '';
+          _profileImageUrl = sellerData['profileImage'] ?? '';
 
           print('Company Name: $_companyName');
           print('Phone: $_phone');
@@ -237,9 +238,11 @@ class _CompanyAddState extends State<CompanyAdd> {
             // Profile Image
             CircleAvatar(
               radius: 50,
-              backgroundImage:
-                  _image != null ? FileImage(File(_image!.path)) : null,
-              child: _image == null
+              backgroundImage: _profileImageUrl != null
+                  ? NetworkImage(
+                      _profileImageUrl!) // Use NetworkImage for Firebase URL
+                  : null,
+              child: _profileImageUrl == null
                   ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
                   : null,
             ),

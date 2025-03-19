@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class DraggableContainerExample extends StatefulWidget {
   @override
@@ -80,7 +81,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
     _phoneController.clear();
   }
 
-  void _showAddLocationDialog({String? docId, Map<String, dynamic>? location}) {
+  void _showAddLocationBottomSheet({String? docId, Map<String, dynamic>? location}) {
     if (location != null) {
       _nameController.text = location['name'];
       _streetController.text = location['street'];
@@ -91,37 +92,73 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
       _landmarkController.text = location['landmark'];
       _phoneController.text = location['phone'];
     }
-    showDialog(
+
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
-        return AlertDialog(
-          title: Text(docId == null ? "Add New Location" : "Edit Location"),
-          content: SingleChildScrollView(
+        return SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: EdgeInsets.all(16),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(controller: _nameController, decoration: InputDecoration(labelText: "Name")),
-                TextField(controller: _streetController, decoration: InputDecoration(labelText: "Street")),
-                TextField(controller: _cityController, decoration: InputDecoration(labelText: "City")),
-                TextField(controller: _stateController, decoration: InputDecoration(labelText: "State")),
-                TextField(controller: _zipController, decoration: InputDecoration(labelText: "ZIP Code")),
-                TextField(controller: _countryController, decoration: InputDecoration(labelText: "Country")),
-                TextField(controller: _landmarkController, decoration: InputDecoration(labelText: "Landmark")),
-                TextField(controller: _phoneController, decoration: InputDecoration(labelText: "Phone")),
+                Text(
+                  docId == null ? "Add New Location" : "Edit Location",
+                  style: GoogleFonts.lora(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                _buildTextField(_nameController, "Full Name"),
+                _buildTextField(_streetController, "Street"),
+                _buildTextField(_cityController, "City"),
+                _buildTextField(_stateController, "State"),
+                _buildTextField(_zipController, "ZIP Code"),
+                _buildTextField(_countryController, "Country"),
+                _buildTextField(_landmarkController, "Landmark (optional)"),
+                _buildTextField(_phoneController, "Phone Number"),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    _saveLocation(docId: docId);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFEBB21D),
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      "Save Location",
+                      style: GoogleFonts.lora(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
-            ElevatedButton(
-              onPressed: () {
-                _saveLocation(docId: docId);
-                Navigator.pop(context);
-              },
-              child: Text("Save"),
-            ),
-          ],
         );
       },
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
     );
   }
 
@@ -133,17 +170,21 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
     return FirebaseFirestore.instance
         .collection('locations')
         .where('userId', isEqualTo: _currentUser!.uid) // Show only current user's locations
-
         .snapshots();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Manage Locations")),
+      appBar: AppBar(
+        title: Text("Manage Locations", style: GoogleFonts.lora(color: Colors.white)),
+        backgroundColor: Color(0xFF380230),
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddLocationDialog(),
-        child: Icon(Icons.add),
+        onPressed: () => _showAddLocationBottomSheet(),
+        child: Icon(Icons.add, color: Colors.white),
+        backgroundColor: Color(0xFFEBB21D),
       ),
       body: Stack(
         children: [
@@ -197,14 +238,24 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
                           margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: ListTile(
                             leading: Icon(Icons.location_on, color: Colors.blueAccent),
-                            title: Text(location['name']),
-                            subtitle: Text("${location['street']}, ${location['city']}, ${location['state']}, ${location['zip']}"),
+                            title: Text(location['name'], style: GoogleFonts.lora(fontWeight: FontWeight.bold)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("${location['street']}, ${location['city']}"),
+                                Text("${location['state']}, ${location['zip']}"),
+                                Text("${location['country']}"),
+                                if (location['landmark'] != null && location['landmark'].isNotEmpty)
+                                  Text("Landmark: ${location['landmark']}"),
+                                Text("Phone: ${location['phone']}"),
+                              ],
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
                                   icon: Icon(Icons.edit, color: Colors.green),
-                                  onPressed: () => _showAddLocationDialog(
+                                  onPressed: () => _showAddLocationBottomSheet(
                                       docId: location.id, location: location.data() as Map<String, dynamic>),
                                 ),
                                 IconButton(

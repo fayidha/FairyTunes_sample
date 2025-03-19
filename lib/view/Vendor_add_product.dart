@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import 'package:dupepro/SuccessScreen.dart';
 import 'package:dupepro/controller/Product_Controller.dart';
 import 'package:dupepro/model/Product_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 class AddProduct extends StatefulWidget {
   const AddProduct({super.key});
@@ -27,6 +26,29 @@ class _AddProductState extends State<AddProduct> {
   final _quantityController = TextEditingController();
   List<File> _images = [];
   final ProductController _productController = ProductController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSellerData();
+  }
+
+  Future<void> _fetchSellerData() async {
+    try {
+      String uid = FirebaseAuth.instance.currentUser!.uid;
+      DocumentSnapshot sellerSnapshot = await _firestore.collection('sellers').doc(uid).get();
+      if (sellerSnapshot.exists) {
+        setState(() {
+          _companyController.text = sellerSnapshot['companyName'];
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch seller data: $e')),
+      );
+    }
+  }
 
   Future<void> _pickImages() async {
     final pickedFiles = await ImagePicker().pickMultiImage();
@@ -165,6 +187,7 @@ class _AddProductState extends State<AddProduct> {
                   controller: _companyController,
                   decoration: const InputDecoration(labelText: "Company", border: OutlineInputBorder()),
                   validator: (value) => value == null || value.isEmpty ? "Enter company name" : null,
+                  enabled: false, // Disable the field
                 ),
                 const SizedBox(height: 10),
                 TextFormField(

@@ -146,7 +146,8 @@ class _TroupDetailState extends State<TroupDetail> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(groupData?['groupName'] ?? "Loading..."),
+        title: Text(groupData?['groupName'] ?? "Loading...",style: TextStyle(color: Colors.white),),
+        iconTheme: IconThemeData(color: Colors.white),
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(

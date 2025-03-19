@@ -1,9 +1,14 @@
-import 'package:dupepro/model/cart_model.dart';
+import 'package:dupepro/view/Checkout.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dupepro/controller/cart_controller.dart';
+import 'package:dupepro/model/cart_model.dart';
 
 class CartPage extends StatefulWidget {
+  final String uid;
+
+  const CartPage({required this.uid});
+
   @override
   _CartPageState createState() => _CartPageState();
 }
@@ -18,25 +23,27 @@ class _CartPageState extends State<CartPage> {
     _loadCartItems();
   }
 
+  // Load cart items for the current user
   Future<void> _loadCartItems() async {
     try {
-      List<CartItem> items = await _cartController.fetchCartItems();
-      print("Fetched cart items: ${items.length}");
+      List<CartItem> items = await _cartController.fetchCartItems(widget.uid);
       setState(() {
-        cartItems = items; // Ensure this updates the state
+        cartItems = items;
       });
     } catch (e) {
       print("Error loading cart items: $e");
     }
   }
 
+  // Calculate the total price of all items in the cart
   double getTotalPrice() {
     return cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
   }
 
+  // Update the quantity of a cart item
   void updateQuantity(String id, int change) async {
     await _cartController.updateQuantity(id, change);
-    _loadCartItems();
+    _loadCartItems(); // Refresh the cart items
   }
 
   @override
@@ -75,7 +82,12 @@ class _CartPageState extends State<CartPage> {
                       margin: EdgeInsets.all(10),
                       color: Colors.grey.shade900,
                       child: ListTile(
-                        leading: Image.network(item.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
+                        leading: Image.network(
+                          item.imageUrl,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
                         title: Text(item.name, style: GoogleFonts.lora(color: Colors.white)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,6 +132,7 @@ class _CartPageState extends State<CartPage> {
                     SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: () {
+                        Navigator.push(context,MaterialPageRoute(builder: (context) => CheckoutPage(totalAmount: getTotalPrice(),),));
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Proceeding to Checkout')),
                         );

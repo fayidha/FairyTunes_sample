@@ -27,7 +27,7 @@ class Session {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? uuid = prefs.getString(_uuidKey);
 
-    if (uuid == null) return null; // Return null if no email is stored
+    if (uuid == null) return null;
 
     try {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
