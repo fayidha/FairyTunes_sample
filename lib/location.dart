@@ -16,7 +16,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
   User? _currentUser = FirebaseAuth.instance.currentUser;
 
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _streetController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _stateController = TextEditingController();
   final TextEditingController _zipController = TextEditingController();
@@ -32,7 +32,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
     }
 
     String name = _nameController.text;
-    String street = _streetController.text;
+    String address = _addressController.text;
     String city = _cityController.text;
     String state = _stateController.text;
     String zip = _zipController.text;
@@ -40,12 +40,18 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
     String landmark = _landmarkController.text;
     String phone = _phoneController.text;
 
-    if (name.isNotEmpty && street.isNotEmpty && city.isNotEmpty) {
+    if (name.isEmpty || address.isEmpty || city.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Please fill all required fields.")));
+      return;
+    }
+
+    try {
       if (docId == null) {
         await FirebaseFirestore.instance.collection('locations').add({
           'userId': _currentUser!.uid, // Store user ID
           'name': name,
-          'street': street,
+          'address': address,
           'city': city,
           'state': state,
           'zip': zip,
@@ -57,7 +63,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
       } else {
         await FirebaseFirestore.instance.collection('locations').doc(docId).update({
           'name': name,
-          'street': street,
+          'address': address,
           'city': city,
           'state': state,
           'zip': zip,
@@ -67,12 +73,17 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
         });
       }
       _clearFields();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Location saved successfully!")));
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Failed to save location: $e")));
     }
   }
 
   void _clearFields() {
     _nameController.clear();
-    _streetController.clear();
+    _addressController.clear();
     _cityController.clear();
     _stateController.clear();
     _zipController.clear();
@@ -84,7 +95,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
   void _showAddLocationBottomSheet({String? docId, Map<String, dynamic>? location}) {
     if (location != null) {
       _nameController.text = location['name'];
-      _streetController.text = location['street'];
+      _addressController.text = location['address'];
       _cityController.text = location['city'];
       _stateController.text = location['state'];
       _zipController.text = location['zip'];
@@ -112,7 +123,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
                 ),
                 SizedBox(height: 16),
                 _buildTextField(_nameController, "Full Name"),
-                _buildTextField(_streetController, "Street"),
+                _buildTextField(_addressController, "Address"),
                 _buildTextField(_cityController, "City"),
                 _buildTextField(_stateController, "State"),
                 _buildTextField(_zipController, "ZIP Code"),
@@ -242,7 +253,7 @@ class _DraggableContainerExampleState extends State<DraggableContainerExample> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("${location['street']}, ${location['city']}"),
+                                Text("${location['address']}, ${location['city']}"),
                                 Text("${location['state']}, ${location['zip']}"),
                                 Text("${location['country']}"),
                                 if (location['landmark'] != null && location['landmark'].isNotEmpty)

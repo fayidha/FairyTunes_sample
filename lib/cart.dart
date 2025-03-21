@@ -132,7 +132,7 @@ class _CartPageState extends State<CartPage> {
                     SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.push(context,MaterialPageRoute(builder: (context) => CheckoutPage(totalAmount: getTotalPrice(),),));
+                        Navigator.push(context,MaterialPageRoute(builder: (context) =>ShippingAddress(),),);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Proceeding to Checkout')),
                         );

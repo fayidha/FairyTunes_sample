@@ -42,14 +42,17 @@ class _TroupePageState extends State<TroupePage> {
     }
   }
 
+
   Future<void> _fetchRatings() async {
     try {
       for (var troupe in troupes) {
         String groupId = troupe['groupId'];
+        print("Fetching rating for group: $groupId");
         double avgRating = await _calculateAverageRating(groupId);
         setState(() {
           ratingsMap[groupId] = avgRating;
         });
+        print("Average rating for $groupId: $avgRating");
       }
       setState(() => isLoading = false);
     } catch (e) {
@@ -65,17 +68,24 @@ class _TroupePageState extends State<TroupePage> {
           .where('rating', isGreaterThan: 0) // Only consider valid ratings
           .get();
 
-      if (snapshot.docs.isEmpty) return 0.0; // No ratings yet
+      if (snapshot.docs.isEmpty) {
+        print("No ratings found for group $groupId");
+        return 0.0;
+      }
 
       double totalRating = 0;
       int count = 0;
 
       for (var doc in snapshot.docs) {
-        totalRating += (doc['rating'] as num).toDouble();
+        double rating = (doc['rating'] as num).toDouble();
+        totalRating += rating;
         count++;
+        print("Rating found: $rating for group $groupId");
       }
 
-      return count > 0 ? totalRating / count : 0.0;
+      double average = count > 0 ? totalRating / count : 0.0;
+      print("Computed average rating for $groupId: $average");
+      return average;
     } catch (e) {
       print("Error calculating rating for group $groupId: $e");
       return 0.0;
