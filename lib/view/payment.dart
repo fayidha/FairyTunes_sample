@@ -1,19 +1,24 @@
-import 'package:dupepro/home.dart';
+import 'package:dupepro/view/product.dart';
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 
 class PaymentScreen extends StatefulWidget {
-  final Map<String, String> shippingAddress;
-  const PaymentScreen({super.key, required this.shippingAddress});
+  final Map<String, String?> shippingAddress; // Allow null values
+  final List<String> productIds; // List of product IDs
+
+  const PaymentScreen({super.key, required this.shippingAddress, required this.productIds});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+
   final _razorpay = Razorpay();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -31,27 +36,46 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment Success: ${response.paymentId}')),
+      SnackBar(content: Text('Payment Successful! Order placed.')),
     );
 
+    // Get the current user's UID
+    final User? user = _auth.currentUser;
+    final String uid = user?.uid ?? '';
+
+    // Prepare initial order data (without payment details)
     final orderData = {
-      'paymentId': response.paymentId,
+      'uid': uid, // Add the user's UID
+      'productIds': widget.productIds, // Add the list of product IDs
       'amount': widget.shippingAddress['amount'],
-      'email': widget.shippingAddress['email'],
-      'phone': widget.shippingAddress['phone'],
-      'shippingAddress': widget.shippingAddress,
+      'email': widget.shippingAddress['email'] ?? '', // Handle null email
+      'shippingAddress': widget.shippingAddress, // Phone is included here
       'timestamp': FieldValue.serverTimestamp(),
+      'status': 'pending', // Initial status
     };
 
     try {
-      await FirebaseFirestore.instance.collection('orders').add(orderData);
+      // Step 1: Create the Firestore document first
+      DocumentReference orderRef = await FirebaseFirestore.instance.collection('orders').add(orderData);
+
+      // Step 2: Use the auto-generated Firestore document ID as the orderId
+      final String orderId = orderRef.id;
+
+      // Step 3: Update the document with payment details
+      await orderRef.update({
+        'orderId': orderId, // Add the document ID as the orderId
+        'paymentId': response.paymentId,
+        'status': 'completed', // Update status to completed
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Order saved successfully!')),
       );
 
+      // Navigate to the ProductList screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(builder: (context) => ProductList()),
       );
     } catch (e) {
       debugPrint('Error saving order: $e');
@@ -74,15 +98,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _openRazorpay() {
+    // Parse the amount as a double first, then convert it to an integer
+    final amountInRupees = double.parse(widget.shippingAddress['amount']!);
+    final amountInPaise = (amountInRupees * 100).toInt(); // Convert to paise
+
     final options = {
       'key': 'rzp_test_zrejXWOWxRf29k', // Replace with your Razorpay key
-      'amount': int.parse(widget.shippingAddress['amount']!) * 100,
+      'amount': amountInPaise, // Use the converted amount
       'currency': 'INR',
-      'name': 'My App',
+      'name': 'FairyTunes',
       'description': 'Payment for Order',
       'prefill': {
-        'contact': widget.shippingAddress['phone'],
-        'email': widget.shippingAddress['email'],
+        'contact': widget.shippingAddress['phone'] ?? '', // Handle null phone
+        'email': widget.shippingAddress['email'] ?? '', // Handle null email
       },
       'notes': {'country': 'India'},
     };
@@ -100,7 +128,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Payment',style: TextStyle(color: Colors.white),),
+        title: const Text('Payment', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         backgroundColor: Color(0xFF380230),
         elevation: 0,
@@ -131,12 +159,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildDetailRow('Name', shippingAddress['name']!),
-                    _buildDetailRow('Address', shippingAddress['address']!),
-                    _buildDetailRow('City', shippingAddress['city']!),
-                    _buildDetailRow('State', shippingAddress['state']!),
-                    _buildDetailRow('Zip', shippingAddress['zip']!),
-                    _buildDetailRow('Country', shippingAddress['country']!),
+                    _buildDetailRow('Name', shippingAddress['name'] ?? 'N/A'),
+                    _buildDetailRow('Address', shippingAddress['address'] ?? 'N/A'),
+                    _buildDetailRow('City', shippingAddress['city'] ?? 'N/A'),
+                    _buildDetailRow('State', shippingAddress['state'] ?? 'N/A'),
+                    _buildDetailRow('Zip', shippingAddress['zip'] ?? 'N/A'),
+                    _buildDetailRow('Country', shippingAddress['country'] ?? 'N/A'),
                   ],
                 ),
               ),
@@ -153,8 +181,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 16),
             _buildPaymentDetailRow('Amount', '₹${shippingAddress['amount']}'),
-            _buildPaymentDetailRow('Email', shippingAddress['email']!),
-            _buildPaymentDetailRow('Phone Number', shippingAddress['phone']!),
+            _buildPaymentDetailRow('Email', shippingAddress['email'] ?? 'N/A'),
+            _buildPaymentDetailRow('Phone Number', shippingAddress['phone'] ?? 'N/A'),
             const SizedBox(height: 24),
             // Pay Button
             Center(

@@ -132,7 +132,16 @@ class _CartPageState extends State<CartPage> {
                     SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.push(context,MaterialPageRoute(builder: (context) =>ShippingAddress(),),);
+                        List<String> productIds = cartItems.map((item) => item.id).toList();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CheckoutPage(
+                              totalAmount: getTotalPrice(),
+                              productIds: productIds,
+                            ),
+                          ),
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Proceeding to Checkout')),
                         );
