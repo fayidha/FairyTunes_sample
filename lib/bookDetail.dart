@@ -7,8 +7,9 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class TroupDetail extends StatefulWidget {
   final String groupId;
+  final double rating;
 
-  TroupDetail({required this.groupId});
+  TroupDetail({required this.groupId, required this.rating});
 
   @override
   _TroupDetailState createState() => _TroupDetailState();
@@ -179,10 +180,13 @@ class _TroupDetailState extends State<TroupDetail> {
                   options: CarouselOptions(height: 220, autoPlay: true),
                 ),
               SizedBox(height: 10),
-              Text(groupData!['groupName'] ?? "Troupe", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(
+                groupData!['groupName'] ?? "Troupe",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 10),
               RatingBarIndicator(
-                rating: groupData?['rating']?.toDouble() ?? 4.0,
+                rating: widget.rating, // Directly use widget.rating as it's required
                 itemBuilder: (context, index) => Icon(Icons.star, color: Colors.amber),
                 itemCount: 5,
                 itemSize: 24.0,

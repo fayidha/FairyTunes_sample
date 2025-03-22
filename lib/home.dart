@@ -706,13 +706,13 @@ class _HomePageState extends State<HomePage> {
                   items: allImagesWithGroups.map((item) {
                     return GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TroupDetail(groupId: item['groupId']),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) =>
+                        //         TroupDetail(groupId: item['groupId']),
+                        //   ),
+                        // );
                       },
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),

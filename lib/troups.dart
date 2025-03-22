@@ -27,7 +27,7 @@ class _TroupePageState extends State<TroupePage> {
       await FirebaseFirestore.instance.collection('groups').get();
 
       List<Map<String, dynamic>> fetchedTroupes = querySnapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
+          .map((doc) => {'groupId': doc.id, ...doc.data() as Map<String, dynamic>})
           .toList();
 
       setState(() {
@@ -42,54 +42,54 @@ class _TroupePageState extends State<TroupePage> {
     }
   }
 
-
   Future<void> _fetchRatings() async {
-    try {
-      for (var troupe in troupes) {
-        String groupId = troupe['groupId'];
-        print("Fetching rating for group: $groupId");
-        double avgRating = await _calculateAverageRating(groupId);
-        setState(() {
-          ratingsMap[groupId] = avgRating;
-        });
-        print("Average rating for $groupId: $avgRating");
-      }
-      setState(() => isLoading = false);
-    } catch (e) {
-      print("Error fetching ratings: $e");
-    }
-  }
-
-  Future<double> _calculateAverageRating(String groupId) async {
     try {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('bookings')
-          .where('groupId', isEqualTo: groupId)
-          .where('rating', isGreaterThan: 0) // Only consider valid ratings
+          .where('rating', isGreaterThan: 0) // Only get bookings with ratings
           .get();
 
-      if (snapshot.docs.isEmpty) {
-        print("No ratings found for group $groupId");
-        return 0.0;
-      }
-
-      double totalRating = 0;
-      int count = 0;
+      Map<String, double> totalRatings = {};
+      Map<String, int> ratingCounts = {};
 
       for (var doc in snapshot.docs) {
-        double rating = (doc['rating'] as num).toDouble();
-        totalRating += rating;
-        count++;
-        print("Rating found: $rating for group $groupId");
+        var data = doc.data() as Map<String, dynamic>;
+        String groupId = data['groupId'];
+        double rating = (data['rating'] as num).toDouble();
+
+        if (totalRatings.containsKey(groupId)) {
+          totalRatings[groupId] = totalRatings[groupId]! + rating;
+          ratingCounts[groupId] = ratingCounts[groupId]! + 1;
+        } else {
+          totalRatings[groupId] = rating;
+          ratingCounts[groupId] = 1;
+        }
       }
 
-      double average = count > 0 ? totalRating / count : 0.0;
-      print("Computed average rating for $groupId: $average");
-      return average;
+      Map<String, double> computedRatings = {};
+      totalRatings.forEach((groupId, total) {
+        computedRatings[groupId] = total / ratingCounts[groupId]!;
+      });
+
+      setState(() {
+        ratingsMap = computedRatings;
+        _sortTroupesByRating();
+        isLoading = false;
+      });
     } catch (e) {
-      print("Error calculating rating for group $groupId: $e");
-      return 0.0;
+      print("Error fetching ratings: $e");
+      setState(() => isLoading = false);
     }
+  }
+
+  void _sortTroupesByRating() {
+    setState(() {
+      filteredTroupes.sort((a, b) {
+        double ratingA = ratingsMap[a['groupId']] ?? 0.0;
+        double ratingB = ratingsMap[b['groupId']] ?? 0.0;
+        return ratingB.compareTo(ratingA); // Sort descending
+      });
+    });
   }
 
   void _searchTroupes(String query) {
@@ -101,6 +101,7 @@ class _TroupePageState extends State<TroupePage> {
               .toLowerCase()
               .contains(query.toLowerCase()))
           .toList();
+      _sortTroupesByRating(); // Ensure sorted order remains
     });
   }
 
@@ -120,8 +121,7 @@ class _TroupePageState extends State<TroupePage> {
       )
           : Text(
         "Troupes",
-        style:
-        TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
+        style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
       ),
       backgroundColor: const Color(0xFF380230),
       iconTheme: const IconThemeData(color: Colors.white),
@@ -134,6 +134,7 @@ class _TroupePageState extends State<TroupePage> {
               if (isSearching) {
                 searchController.clear();
                 filteredTroupes = troupes; // Reset search
+                _sortTroupesByRating();
               }
               isSearching = !isSearching;
             });
@@ -155,9 +156,9 @@ class _TroupePageState extends State<TroupePage> {
             );
           }),
         ),
-        SizedBox(width: 6), // Add spacing between stars and number
+        SizedBox(width: 6),
         Text(
-          rating.toStringAsFixed(1), // Show numeric rating (e.g., 4.3)
+          rating > 0 ? rating.toStringAsFixed(1) : "No ratings",
           style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
         ),
       ],
@@ -196,15 +197,14 @@ class _TroupePageState extends State<TroupePage> {
             (troupe['images'] != null && troupe['images'].isNotEmpty)
                 ? troupe['images'][0]
                 : 'https://via.placeholder.com/200';
-            double rating = ratingsMap[groupId] ?? 0.0; // Get rating
+            double rating = ratingsMap[groupId] ?? 0.0;
 
             return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        TroupDetail(groupId: groupId),
+                    builder: (context) => TroupDetail(groupId: groupId,rating:rating),
                   ),
                 );
               },
@@ -228,19 +228,6 @@ class _TroupePageState extends State<TroupePage> {
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.7),
-                          Colors.transparent
-                        ],
                       ),
                     ),
                   ),
