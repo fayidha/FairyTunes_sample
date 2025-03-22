@@ -158,7 +158,7 @@ class _TroupePageState extends State<TroupePage> {
         ),
         SizedBox(width: 6),
         Text(
-          rating > 0 ? rating.toStringAsFixed(1) : "No ratings",
+          rating > 0 ? rating.toStringAsFixed(1) : "0.0",
           style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
         ),
       ],
