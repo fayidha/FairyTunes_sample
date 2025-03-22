@@ -130,15 +130,16 @@ class _CartPageState extends State<CartPage> {
                       style: GoogleFonts.lora(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     SizedBox(height: 10),
+                    // In CartPage.dart
                     ElevatedButton(
                       onPressed: () {
-                        List<String> productIds = cartItems.map((item) => item.id).toList();
+                        // Pass the list of cart items with their details
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => CheckoutPage(
                               totalAmount: getTotalPrice(),
-                              productIds: productIds,
+                              cartItems: cartItems, // Pass the entire cart items list
                             ),
                           ),
                         );

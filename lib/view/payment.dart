@@ -1,3 +1,4 @@
+import 'package:dupepro/model/cart_model.dart';
 import 'package:dupepro/view/product.dart';
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
@@ -7,9 +8,9 @@ import 'package:flutter/services.dart';
 
 class PaymentScreen extends StatefulWidget {
   final Map<String, String?> shippingAddress; // Allow null values
-  final List<String> productIds; // List of product IDs
+  final List<CartItem> cartItems;
 
-  const PaymentScreen({super.key, required this.shippingAddress, required this.productIds});
+  const PaymentScreen({super.key, required this.shippingAddress, required this.cartItems});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -34,49 +35,78 @@ class _PaymentScreenState extends State<PaymentScreen> {
     super.dispose();
   }
 
-  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment Successful! Order placed.')),
-    );
 
-    // Get the current user's UID
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+
+
     final User? user = _auth.currentUser;
     final String uid = user?.uid ?? '';
 
-    // Prepare initial order data (without payment details)
     final orderData = {
-      'uid': uid, // Add the user's UID
-      'productIds': widget.productIds, // Add the list of product IDs
+      'uid': uid,
+      'cartItems': widget.cartItems.map((item) => {
+        'productId': item.id,
+        'name': item.name,
+        'price': item.price,
+        'quantity': item.quantity,
+        'color': item.color,
+        'size': item.size,
+        'imageUrl': item.imageUrl,
+      }).toList(),
       'amount': widget.shippingAddress['amount'],
-      'email': widget.shippingAddress['email'] ?? '', // Handle null email
-      'shippingAddress': widget.shippingAddress, // Phone is included here
+      'email': widget.shippingAddress['email'] ?? '',
+      'shippingAddress': widget.shippingAddress,
       'timestamp': FieldValue.serverTimestamp(),
-      'status': 'pending', // Initial status
+      'status': 'pending',
     };
 
     try {
-      // Step 1: Create the Firestore document first
+      // Create the order in Firestore
       DocumentReference orderRef = await FirebaseFirestore.instance.collection('orders').add(orderData);
-
-      // Step 2: Use the auto-generated Firestore document ID as the orderId
       final String orderId = orderRef.id;
 
-      // Step 3: Update the document with payment details
+      // Update the order with payment details
       await orderRef.update({
-        'orderId': orderId, // Add the document ID as the orderId
+        'orderId': orderId,
         'paymentId': response.paymentId,
-        'status': 'completed', // Update status to completed
+        'status': 'completed',
       });
 
+      // To reduce quantity from product collection
+      for (var product in widget.cartItems) {
+        String productId = product.id;
+        int purchasedQuantity = product.quantity;
+
+        DocumentReference productRef = FirebaseFirestore.instance.collection('products').doc(productId);
+        DocumentSnapshot productSnapshot = await productRef.get();
+
+        if (productSnapshot.exists) {
+          int currentQuantity = productSnapshot['quantity'] ?? 0;
+          int newQuantity = (currentQuantity - purchasedQuantity).clamp(0, currentQuantity); // Prevent negative stock
+
+          await productRef.update({'quantity': newQuantity});
+        }
+      }
+
+      // Remove all items from the user's cart
+      final cartCollection = FirebaseFirestore.instance.collection('cart');
+      final cartSnapshot = await cartCollection.where('uid', isEqualTo: uid).get();
+
+      for (var doc in cartSnapshot.docs) {
+        await doc.reference.delete(); // Delete each cart item
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order saved successfully!')),
+        const SnackBar(content: Text('Order placed! Cart cleared.')),
       );
 
-      // Navigate to the ProductList screen
+
+      //Navigate to the ProductList screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => ProductList()),
       );
+
     } catch (e) {
       debugPrint('Error saving order: $e');
       ScaffoldMessenger.of(context).showSnackBar(

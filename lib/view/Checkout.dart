@@ -1,14 +1,17 @@
+import 'package:dupepro/model/cart_model.dart';
 import 'package:dupepro/view/payment.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+
 class CheckoutPage extends StatefulWidget {
   final double totalAmount;
-  final List<String> productIds;
+  final List<CartItem> cartItems; // Accept the list of cart items
 
-  const CheckoutPage({required this.totalAmount, required this.productIds});
+  const CheckoutPage({required this.totalAmount, required this.cartItems});
+
 
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
@@ -33,6 +36,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         .snapshots();
   }
 
+  // In CheckoutPage.dart
   void _confirmOrder() {
     if (selectedAddressId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,13 +65,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'email': _currentUser!.email, // This can be null
         };
 
-        // Navigate to the PaymentScreen
+        // Navigate to the PaymentScreen with cart item details
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => PaymentScreen(
               shippingAddress: shippingAddress,
-              productIds: widget.productIds, // Pass the list of product IDs
+              cartItems: widget.cartItems, // Pass the list of cart items
             ),
           ),
         );

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/company_view.dart';
+import 'package:dupepro/view/Checkout.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,6 +22,21 @@ class _ProductDetailState extends State<ProductDetail> {
   int _currentImageIndex = 0;
   String? _selectedColor;
   String? _selectedSize;
+  int _quantity = 1; // Add a quantity counter
+
+  void _incrementQuantity() {
+    setState(() {
+      _quantity++;
+    });
+  }
+
+  void _decrementQuantity() {
+    if (_quantity > 1) {
+      setState(() {
+        _quantity--;
+      });
+    }
+  }
 
   void _addToCart() async {
     if (_selectedColor == null || _selectedSize == null) {
@@ -44,7 +60,7 @@ class _ProductDetailState extends State<ProductDetail> {
       id: widget.productId.id,
       name: widget.productId.name,
       price: widget.productId.price,
-      quantity: 1,
+      quantity: _quantity, // Use the selected quantity
       imageUrl: widget.productId.imageUrls[0],
       color: _selectedColor!,
       size: _selectedSize!,
@@ -78,11 +94,67 @@ class _ProductDetailState extends State<ProductDetail> {
     }
   }
 
+  void _buyNow() async {
+    print("Buy Now button pressed"); // Debug print
+
+    // Check if color and size are selected
+    if (_selectedColor == null || _selectedSize == null) {
+      print("Color or size not selected"); // Debug print
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select color and size!')),
+      );
+      return;
+    }
+
+    // Check if user is logged in
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print("User not logged in"); // Debug print
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You need to be logged in to proceed!')),
+      );
+      return;
+    }
+
+    // Check if product data is valid
+    if (widget.productId == null || widget.productId.price == null || widget.productId.id == null) {
+      print("Invalid product data"); // Debug print
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid product details!')),
+      );
+      return;
+    }
+
+    // Create a CartItem object
+    CartItem cartItem = CartItem(
+      id: widget.productId.id,
+      name: widget.productId.name,
+      price: widget.productId.price,
+      quantity: _quantity, // Use the selected quantity
+      imageUrl: widget.productId.imageUrls[0],
+      color: _selectedColor!,
+      size: _selectedSize!,
+      uid: user.uid,
+      productId: widget.productId.id,
+    );
+
+    print("Navigating to CheckoutPage"); // Debug print
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutPage(
+          totalAmount: widget.productId.price * _quantity, // Calculate total amount based on quantity
+          cartItems: [cartItem], // Pass the CartItem object as a list
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     List<String> colors = widget.productId.colors ?? [];
     List<String> sizes = widget.productId.sizes ?? [];
-    User? user = FirebaseAuth.instance.currentUser; // Get current user
+    User? user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -322,9 +394,22 @@ class _ProductDetailState extends State<ProductDetail> {
                                     color: Colors.greenAccent,
                                   ),
                                 ),
-                                Text(
-                                  "Quantity: ${widget.productId.quantity}",
-                                  style: GoogleFonts.lora(fontSize: 16, color: Colors.white70),
+                                // Quantity selector
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.remove, color: Colors.white),
+                                      onPressed: _decrementQuantity,
+                                    ),
+                                    Text(
+                                      '$_quantity',
+                                      style: GoogleFonts.lora(fontSize: 18, color: Colors.white),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.add, color: Colors.white),
+                                      onPressed: _incrementQuantity,
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -334,7 +419,7 @@ class _ProductDetailState extends State<ProductDetail> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: _buyNow, // Updated to call _buyNow
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Color(0xFFEBB21D),
                                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),

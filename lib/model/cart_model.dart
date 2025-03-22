@@ -6,8 +6,8 @@ class CartItem {
   String imageUrl;
   String color;
   String size;
-  String uid; // Add uid
-  String productId; // Add productId
+  String uid;
+  String productId;
 
   CartItem({
     required this.id,
@@ -30,8 +30,8 @@ class CartItem {
       'imageUrl': imageUrl,
       'color': color,
       'size': size,
-      'uid': uid, // Add uid
-      'productId': productId, // Add productId
+      'uid': uid,
+      'productId': productId,
     };
   }
 
