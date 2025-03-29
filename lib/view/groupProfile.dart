@@ -5,8 +5,13 @@ import 'package:intl/intl.dart';
 
 class GroupProfile extends StatefulWidget {
   final String groupId;
+  final String currentUserId; // Add current user ID to check if they're admin
 
-  const GroupProfile({Key? key, required this.groupId}) : super(key: key);
+  const GroupProfile({
+    Key? key,
+    required this.groupId,
+    required this.currentUserId,
+  }) : super(key: key);
 
   @override
   State<GroupProfile> createState() => _GroupProfileState();
@@ -17,8 +22,6 @@ class _GroupProfileState extends State<GroupProfile> {
   Map<String, Map<String, dynamic>> membersData = {};
   Map<String, dynamic>? adminData;
   bool isLoading = true;
-
-
 
   @override
   void initState() {
@@ -95,8 +98,65 @@ class _GroupProfileState extends State<GroupProfile> {
     return userData;
   }
 
+  Future<void> _changeAdmin(String newAdminId) async {
+    if (groupData == null || groupData!['admin'] == null) return;
+
+    final String currentAdminId = groupData!['admin'];
+    final List<dynamic> members = groupData!['members'] ?? [];
+
+    try {
+      // Update the group document with new admin and updated members list
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .update({
+        'admin': newAdminId,
+        'members': FieldValue.arrayUnion([currentAdminId]), // Add old admin to members
+      });
+
+      // Refresh the data
+      await _fetchGroupDetails();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Admin changed successfully')),
+      );
+    } catch (e) {
+      print("Error changing admin: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to change admin')),
+      );
+    }
+  }
+  void _showChangeAdminDialog(String memberId, String memberName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Change Admin"),
+          content: Text("Are you sure you want to make $memberName the new admin?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _changeAdmin(memberId);
+              },
+              child: Text("Confirm"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool isCurrentUserAdmin = adminData != null &&
+        adminData!['uid'] == widget.currentUserId;
+
     return Scaffold(
       appBar: AppBar(title: Text("Group Profile")),
       body: isLoading
@@ -144,7 +204,20 @@ class _GroupProfileState extends State<GroupProfile> {
                   leading: Icon(Icons.person),
                   title: Text(member['name'] ?? 'Unknown Member'),
                   subtitle: Text(member['email'] ?? 'No email'),
-                  trailing: Text(member['artistType'] ?? 'Unknown'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(member['artistType'] ?? 'Unknown'),
+                      if (isCurrentUserAdmin && memberId != adminData!['uid'])
+                        IconButton(
+                          icon: Icon(Icons.admin_panel_settings, color: Colors.blue),
+                          onPressed: () => _showChangeAdminDialog(
+                              memberId,
+                              member['name'] ?? 'this member'
+                          ),
+                        ),
+                    ],
+                  ),
                 );
               }).toList(),
             )
@@ -178,7 +251,6 @@ class _GroupProfileState extends State<GroupProfile> {
                     MaterialPageRoute(
                       builder: (context) => TroupManageBooking(
                         groupId: widget.groupId,
-                        // Correctly passing admin ID
                       ),
                     ),
                   );
@@ -202,7 +274,6 @@ class _GroupProfileState extends State<GroupProfile> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-
           ],
         ),
       ),

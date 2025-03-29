@@ -25,19 +25,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
             return Center(child: Text("No invitations available."));
           }
 
-          // **Filter requests where the current user is invited**
+          // Filter requests where the current user is invited
           var userRequests = snapshot.data!.docs.where((doc) {
             var data = doc.data() as Map<String, dynamic>?;
 
             if (data == null ||
                 !data.containsKey('artists') ||
                 data['artists'] is! List) {
-              return false; // Ignore if artists field is missing or invalid
+              return false;
             }
 
             var artists = data['artists'] as List<dynamic>;
             return artists.any((artist) =>
-                artist is Map<String, dynamic> &&
+            artist is Map<String, dynamic> &&
                 artist['artistUid'] == currentUser?.uid &&
                 artist['status'] == 'pending');
           }).toList();
@@ -53,7 +53,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               var data = request.data() as Map<String, dynamic>?;
 
               if (data == null || !data.containsKey('artists')) {
-                return SizedBox.shrink(); // Skip if data is missing
+                return SizedBox.shrink();
               }
 
               var groupId = data['groupId'] ?? "Unknown Group";
@@ -61,23 +61,29 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
               // Find the current user's artist data
               var artistData = (data['artists'] as List).firstWhere(
-                (artist) =>
-                    artist is Map<String, dynamic> &&
+                    (artist) =>
+                artist is Map<String, dynamic> &&
                     artist['artistUid'] == currentUser?.uid,
                 orElse: () => null,
               );
 
               if (artistData == null || artistData is! Map<String, dynamic>) {
-                return SizedBox.shrink(); // Skip if no valid artist data
+                return SizedBox.shrink();
               }
 
               return GestureDetector(
                 onTap: () {
+                  if (currentUser == null) return;
+
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GroupProfile(groupId: groupId),
-                      ));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GroupProfile(
+                        groupId: groupId,
+                        currentUserId: currentUser!.uid, // Pass current user ID
+                      ),
+                    ),
+                  );
                 },
                 child: Card(
                   margin: EdgeInsets.all(8),
@@ -109,6 +115,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _acceptRequest(String groupId, String requestId) async {
+    if (currentUser == null) return;
+
     await FirebaseFirestore.instance.collection('groups').doc(groupId).update({
       'members': FieldValue.arrayUnion([currentUser!.uid]),
     });
@@ -120,6 +128,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _rejectRequest(String groupId, String requestId) async {
+    if (currentUser == null) return;
+
     await FirebaseFirestore.instance.collection('groups').doc(groupId).update({
       'members': FieldValue.arrayRemove([currentUser!.uid]),
     });
@@ -131,8 +141,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _updateRequestStatus(String requestId, String status) async {
+    if (currentUser == null) return;
+
     DocumentReference requestRef =
-        FirebaseFirestore.instance.collection('requests').doc(requestId);
+    FirebaseFirestore.instance.collection('requests').doc(requestId);
 
     var requestData = await requestRef.get();
     if (requestData.exists) {

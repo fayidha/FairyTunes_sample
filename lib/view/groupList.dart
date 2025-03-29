@@ -11,7 +11,7 @@ class GroupList extends StatefulWidget {
 }
 
 class _GroupListState extends State<GroupList> {
-  String? userId;
+  String? userId; // This will store the current user ID
   bool isLoading = true;
   List<Map<String, dynamic>> groups = [];
 
@@ -45,7 +45,12 @@ class _GroupListState extends State<GroupList> {
 
       // Convert to a list of maps
       setState(() {
-        groups = querySnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+        groups = querySnapshot.docs.map((doc) {
+          var data = doc.data() as Map<String, dynamic>;
+          // Add the document ID to the group data
+          data['groupId'] = doc.id;
+          return data;
+        }).toList();
         isLoading = false;
       });
     } catch (e) {
@@ -75,14 +80,15 @@ class _GroupListState extends State<GroupList> {
             title: Text(group['groupName'] ?? 'Unnamed Group'),
             subtitle: Text(group['groupDescription'] ?? 'No description'),
             onTap: () {
-              // Navigate to Group Profile (Assuming you have a GroupProfile screen)
+              // Navigate to Group Profile
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => GroupProfile(
-                groupId: group['groupId'],
-              ),
-                )
+                    groupId: group['groupId'],
+                    currentUserId: userId!, // Use the userId we fetched
+                  ),
+                ),
               );
             },
           );
