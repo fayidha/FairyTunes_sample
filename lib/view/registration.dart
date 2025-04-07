@@ -112,7 +112,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter your email';
                   }
-                  final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                  final emailRegex = RegExp(r'^[a-z0-9._%+-]+@[^@\s]+\.[^@\s]+$');
                   if (!emailRegex.hasMatch(value)) {
                     return 'Please enter a valid email (e.g., user@example.com)';
                   }
@@ -139,6 +139,21 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter a password';
+                  }
+                  if (value.length < 8) {
+                    return 'Password must be at least 8 characters long';
+                  }
+                  if (!value.contains(RegExp(r'[A-Z]'))) {
+                    return 'Password must contain at least one uppercase letter';
+                  }
+                  if (!value.contains(RegExp(r'[a-z]'))) {
+                    return 'Password must contain at least one lowercase letter';
+                  }
+                  if (!value.contains(RegExp(r'[0-9]'))) {
+                    return 'Password must contain at least one number';
+                  }
+                  if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+                    return 'Password must contain at least one special character';
                   }
                   return null;
                 },

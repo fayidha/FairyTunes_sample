@@ -3,6 +3,7 @@ import 'package:dupepro/model/Product_model.dart';
 import 'package:dupepro/view/detailPage.dart';
 import 'package:dupepro/view/wishlist.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProductList extends StatefulWidget {
   @override
@@ -11,13 +12,26 @@ class ProductList extends StatefulWidget {
 
 class _ProductListState extends State<ProductList> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  Set<String> wishlist = {}; // Track wishlist items
-  String searchQuery = ''; // Track search query
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Add this
+  Set<String> wishlist = {};
+  String searchQuery = '';
+  String? currentUserId; // To store current user's ID
 
   @override
   void initState() {
     super.initState();
     _loadWishlist();
+    _getCurrentUserId();
+  }
+
+  // Get current user's ID
+  void _getCurrentUserId() {
+    final user = _auth.currentUser;
+    if (user != null) {
+      setState(() {
+        currentUserId = user.uid;
+      });
+    }
   }
 
   // Load wishlist items from Firestore
@@ -87,6 +101,7 @@ class _ProductListState extends State<ProductList> {
 
           List<Product> products = snapshot.data!.docs
               .map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+              .where((product) => product.uid != currentUserId) // Filter out current user's products
               .toList();
 
           // Filter products based on search query
@@ -94,6 +109,10 @@ class _ProductListState extends State<ProductList> {
             return product.name.toLowerCase().contains(searchQuery) ||
                 product.company.toLowerCase().contains(searchQuery);
           }).toList();
+
+          if (filteredProducts.isEmpty) {
+            return Center(child: Text("No products match your search"));
+          }
 
           return GridView.builder(
             padding: EdgeInsets.all(10),

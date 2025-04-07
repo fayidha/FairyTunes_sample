@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dupepro/model/teacher_model.dart';
 import 'package:dupepro/chat.dart';
 import 'package:dupepro/view/teacherprofileview.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Add this import
 
 class TeacherPage extends StatefulWidget {
   const TeacherPage({super.key});
@@ -13,7 +14,25 @@ class TeacherPage extends StatefulWidget {
 
 class _TeacherPageState extends State<TeacherPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Add this
   String searchQuery = '';
+  String? currentUserId; // To store current user's ID
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentUserId();
+  }
+
+  // Get current user's ID
+  void _getCurrentUserId() {
+    final user = _auth.currentUser;
+    if (user != null) {
+      setState(() {
+        currentUserId = user.uid;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,13 +71,22 @@ class _TeacherPageState extends State<TeacherPage> {
             return const Center(child: Text('No teachers found'));
           }
 
-          var teachers = snapshot.data!.docs.map((doc) {
+          var teachers = snapshot.data!.docs
+              .map((doc) {
             var data = doc.data() as Map<String, dynamic>;
             return Teacher.fromMap(data);
-          }).where((teacher) {
-            return teacher.name.toLowerCase().contains(searchQuery) ||
-                teacher.category.toLowerCase().contains(searchQuery);
-          }).toList();
+          })
+              .where((teacher) =>
+          // Filter out current user's teacher profile
+          teacher.teacherId != currentUserId &&
+              // Keep the search filter
+              (teacher.name.toLowerCase().contains(searchQuery) ||
+                  teacher.category.toLowerCase().contains(searchQuery)))
+              .toList();
+
+          if (teachers.isEmpty) {
+            return const Center(child: Text('No teachers match your search'));
+          }
 
           return ListView.builder(
             padding: const EdgeInsets.all(10),

@@ -87,7 +87,7 @@ class _LoginFormState extends State<LoginForm> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter your email';
                   }
-                  final emailRegex = RegExp(r'^[^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                  final emailRegex = RegExp(r'^[a-z0-9._%+-]+@[^@\s]+\.[^@\s]+$');
                   if (!emailRegex.hasMatch(value)) {
                     return 'Please enter a valid email (e.g., user@gmail.com)';
                   }

@@ -37,7 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       String fileName = DateTime.now().millisecondsSinceEpoch.toString();
       Reference storageRef =
-          FirebaseStorage.instance.ref().child('user_images/$fileName.jpg');
+      FirebaseStorage.instance.ref().child('user_images/$fileName.jpg');
 
       UploadTask uploadTask = storageRef.putFile(_imageFile);
 
@@ -91,8 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           name = userDoc['name'];
           email = userDoc['email'];
-          profileImage = userDoc['userProfile'] ??
-              ''; // Default to empty string if no image exists
+          profileImage = userDoc['userProfile'] ?? '';
         });
       }
     }
@@ -112,9 +111,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           children: [
             GestureDetector(
-              onTap: () {
-                pickImages(); // When tapped, pick an image
-              },
+              onTap: pickImages,
               child: CircleAvatar(
                 radius: 60,
                 backgroundImage: profileImage.isNotEmpty
@@ -123,8 +120,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             SizedBox(height: 20),
-
-            // Name with Edit Icon
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -134,16 +129,25 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => Editprofile())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Editprofile(
+                        currentName: name,
+                        currentEmail: email,
+                      ),
+                    ),
+                  ).then((updated) {
+                    if (updated == true) {
+                      _loadUserProfile();
+                    }
+                  }),
                   child: Icon(Icons.edit, color: Colors.grey, size: 20),
                 ),
               ],
             ),
-
             Text(email, style: TextStyle(fontSize: 16, color: Colors.grey)),
             SizedBox(height: 20),
-
             _buildSwitchMyRole(context),
             SizedBox(height: 20),
             _buildCarouselSlider(context),
