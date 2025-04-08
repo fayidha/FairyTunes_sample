@@ -11,7 +11,7 @@ class GroupList extends StatefulWidget {
 }
 
 class _GroupListState extends State<GroupList> {
-  String? userId; // This will store the current user ID
+  String? userId;
   bool isLoading = true;
   List<Map<String, dynamic>> groups = [];
 
@@ -23,7 +23,6 @@ class _GroupListState extends State<GroupList> {
 
   Future<void> _fetchUserGroups() async {
     try {
-      // Get the current user ID
       Map<String, String?> sessionData = await Session.getSession();
       userId = sessionData['uid'];
 
@@ -32,7 +31,6 @@ class _GroupListState extends State<GroupList> {
         return;
       }
 
-      // Query Firestore for groups where the user is admin OR in the members list
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('groups')
           .where(
@@ -43,11 +41,9 @@ class _GroupListState extends State<GroupList> {
       )
           .get();
 
-      // Convert to a list of maps
       setState(() {
         groups = querySnapshot.docs.map((doc) {
           var data = doc.data() as Map<String, dynamic>;
-          // Add the document ID to the group data
           data['groupId'] = doc.id;
           return data;
         }).toList();
@@ -56,6 +52,46 @@ class _GroupListState extends State<GroupList> {
     } catch (e) {
       print("Error fetching groups: $e");
       setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _cancelGroup(String groupId) async {
+    try {
+      // Show confirmation dialog
+      bool confirm = await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Confirm Cancellation"),
+          content: Text("Are you sure you want to cancel this group?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text("No"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text("Yes"),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
+      // Delete the group from Firestore
+      await FirebaseFirestore.instance.collection('groups').doc(groupId).delete();
+
+      // Refresh the group list
+      _fetchUserGroups();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Group cancelled successfully")),
+      );
+    } catch (e) {
+      print("Error cancelling group: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to cancel group")),
+      );
     }
   }
 
@@ -71,6 +107,8 @@ class _GroupListState extends State<GroupList> {
         itemCount: groups.length,
         itemBuilder: (context, index) {
           var group = groups[index];
+          bool isAdmin = group['admin'] == userId;
+
           return ListTile(
             leading: group['images'] != null && group['images'].isNotEmpty
                 ? CircleAvatar(
@@ -79,14 +117,31 @@ class _GroupListState extends State<GroupList> {
                 : CircleAvatar(child: Icon(Icons.group)),
             title: Text(group['groupName'] ?? 'Unnamed Group'),
             subtitle: Text(group['groupDescription'] ?? 'No description'),
+            trailing: isAdmin
+                ? PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert),
+              onSelected: (value) {
+                if (value == 'cancel') {
+                  _cancelGroup(group['groupId']);
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return [
+                  PopupMenuItem<String>(
+                    value: 'cancel',
+                    child: Text("Cancel Group"),
+                  ),
+                ];
+              },
+            )
+                : null, // No menu for non-admin groups
             onTap: () {
-              // Navigate to Group Profile
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => GroupProfile(
                     groupId: group['groupId'],
-                    currentUserId: userId!, // Use the userId we fetched
+                    currentUserId: userId!,
                   ),
                 ),
               );

@@ -262,7 +262,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create Group'),
+        title: Text(
+          'Create Group',
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: IconThemeData(color: Colors.white), // AppBar back icon white
         backgroundColor: Color(0xFF380230),
       ),
       body: SingleChildScrollView(
@@ -271,38 +275,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           key: _formKey,
           child: Column(
             children: [
-              _buildImageSection(), // Image section with image picker
-              SizedBox(height: 24),
-
-              // Group Name Field
-              TextFormField(
-                controller: _groupNameController,
-                decoration: InputDecoration(
-                  labelText: 'Group Name',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.8),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? 'Enter a group name' : null,
-              ),
-              SizedBox(height: 16),
-
-              // Group Description Field
-              TextFormField(
-                controller: _groupDescriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Group Description',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.8),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? 'Enter a group description' : null,
-              ),
-              SizedBox(height: 16),
-
-              // Add Artist Button
+              // 1. Add Artist Button
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
@@ -321,52 +294,90 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 ),
                 child: Text('Add Artist', style: TextStyle(fontSize: 16)),
               ),
-              SizedBox(height: 24),
+              SizedBox(height: 16),
+
+              // 2. Artist List
               _isLoading
-                  ? Center(
-                      child:
-                          CircularProgressIndicator()) // 🔄 Show loader while fetching artists
+                  ? Center(child: CircularProgressIndicator())
                   : _selectedArtists.isEmpty
-                      ? Center(
-                          child: Text('No artists added yet',
-                              style: TextStyle(color: Colors.grey)))
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: _selectedArtists.length,
-                          itemBuilder: (context, index) {
-                            final artist = _selectedArtists[index];
-                            return Card(
-                              elevation: 4,
-                              margin: EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: ListTile(
-                                title: Text(artistNames[index],
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("Type: ${artist.artistType}"),
-                                    Text("Bio: ${artist.bio}"),
-                                    Text("Email: ${artistEmails[index]}"),
-                                  ],
-                                ),
-                                trailing: IconButton(
-                                  icon: Icon(Icons.remove_circle,
-                                      color: Colors.red),
-                                  onPressed: () {},
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-
+                  ? Center(
+                  child: Text('No artists added yet',
+                      style: TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: _selectedArtists.length,
+                itemBuilder: (context, index) {
+                  final artist = _selectedArtists[index];
+                  return Card(
+                    elevation: 4,
+                    margin: EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      title: Text(
+                        artistNames[index],
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Type: ${artist.artistType}"),
+                          Text("Bio: ${artist.bio}"),
+                          Text("Email: ${artistEmails[index]}"),
+                        ],
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(Icons.remove_circle,
+                            color: Colors.red),
+                        onPressed: () {
+                          setState(() {
+                            _selectedArtists.removeAt(index);
+                            artistNames.removeAt(index);
+                            artistEmails.removeAt(index);
+                          });
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
               SizedBox(height: 24),
 
-              // Create Group Button
+              // 3. Image Picker Section
+              _buildImageSection(),
+              SizedBox(height: 24),
+
+              // 4. Group Name
+              TextFormField(
+                controller: _groupNameController,
+                decoration: InputDecoration(
+                  labelText: 'Group Name',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.8),
+                ),
+                validator: (value) =>
+                value!.isEmpty ? 'Enter a group name' : null,
+              ),
+              SizedBox(height: 16),
+
+              // 5. Group Description
+              TextFormField(
+                controller: _groupDescriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Group Description',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.8),
+                ),
+                validator: (value) =>
+                value!.isEmpty ? 'Enter a group description' : null,
+              ),
+              SizedBox(height: 24),
+
+              // 6. Create Group Button
               ElevatedButton(
                 onPressed: _createGroup,
                 style: ElevatedButton.styleFrom(
@@ -385,6 +396,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       ),
     );
   }
+
 
   Widget _buildImageSection() {
     return GestureDetector(
