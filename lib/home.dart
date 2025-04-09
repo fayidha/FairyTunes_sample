@@ -8,6 +8,7 @@ import 'package:dupepro/troups.dart';
 import 'package:dupepro/videoplayer.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:dupepro/view/logovdo.dart';
+import 'package:dupepro/view/notification_artist.dart';
 import 'package:dupepro/view/product.dart';
 import 'package:dupepro/view/productcategory.dart';
 import 'package:dupepro/view/teachers.dart';
@@ -766,7 +767,7 @@ class _HomePageState extends State<HomePage> {
             //       Navigator.push(
             //           context,
             //           MaterialPageRoute(
-            //               builder: (context) => TeacherDashboard()));
+            //               builder: (context) => NotificationByTime()));
             //     },
             //     child: Text('Teacher add notes')),
           ],
