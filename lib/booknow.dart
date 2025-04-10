@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 class BookNow extends StatefulWidget {
   final String groupId;
   final String groupName;
-  final String? location; // Optional location from the troupe
+  final String? location;
 
   BookNow({required this.groupId, required this.groupName, this.location});
 
@@ -25,9 +25,8 @@ class _BookNowState extends State<BookNow> {
   String? _userName;
   String? _userEmail;
   bool _isLoading = true;
-  String? _selectedEventType; // New variable to store the selected event type
+  String? _selectedEventType;
 
-  // List of event types for the dropdown
   final List<String> _eventTypes = [
     'Wedding',
     'College Events',
@@ -115,7 +114,7 @@ class _BookNowState extends State<BookNow> {
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userUid = prefs.getString('uid'); // Get logged-in user ID
+      String? userUid = prefs.getString('uid');
 
       if (userUid == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +123,6 @@ class _BookNowState extends State<BookNow> {
         return;
       }
 
-      // Prepare booking data
       Map<String, dynamic> bookingData = {
         'userId': userUid,
         'userName': _userName,
@@ -135,7 +133,7 @@ class _BookNowState extends State<BookNow> {
         'programDate': _programDateController.text,
         'programTime': _programTimeController.text,
         'eventLocation': _eventLocationController.text,
-        'eventType': _selectedEventType, // Add selected event type
+        'eventType': _selectedEventType,
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'Booked'
       };
@@ -143,7 +141,6 @@ class _BookNowState extends State<BookNow> {
       try {
         await FirebaseFirestore.instance.collection('bookings').add(bookingData);
 
-        // Navigate to Success Page
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -153,10 +150,6 @@ class _BookNowState extends State<BookNow> {
             ),
           ),
         );
-
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   SnackBar(content: Text('')),
-        // );
       } catch (e) {
         print("Error saving booking: $e");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -249,8 +242,8 @@ class _BookNowState extends State<BookNow> {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your phone number';
                           }
-                          if (value.length < 10) {
-                            return 'Phone number must be at least 10 digits long';
+                          if (!RegExp(r'^[0-9]{10}$').hasMatch(value.trim())) {
+                            return 'Phone number must be exactly 10 digits';
                           }
                           return null;
                         },
@@ -266,7 +259,12 @@ class _BookNowState extends State<BookNow> {
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                               prefixIcon: Icon(Icons.date_range),
                             ),
-                            validator: (value) => value!.isEmpty ? 'Please enter the program date' : null,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please select the program date';
+                              }
+                              return null;
+                            },
                           ),
                         ),
                       ),
@@ -281,7 +279,12 @@ class _BookNowState extends State<BookNow> {
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                               prefixIcon: Icon(Icons.access_time),
                             ),
-                            validator: (value) => value!.isEmpty ? 'Please enter the program time' : null,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please select the program time';
+                              }
+                              return null;
+                            },
                           ),
                         ),
                       ),
@@ -293,7 +296,12 @@ class _BookNowState extends State<BookNow> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                           prefixIcon: Icon(Icons.location_on),
                         ),
-                        validator: (value) => value!.isEmpty ? 'Please enter the event location' : null,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter the event location';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
@@ -314,7 +322,12 @@ class _BookNowState extends State<BookNow> {
                             _selectedEventType = newValue;
                           });
                         },
-                        validator: (value) => value == null ? 'Please select an event type' : null,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please select an event type';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton(
@@ -323,11 +336,11 @@ class _BookNowState extends State<BookNow> {
                           backgroundColor: MaterialStateProperty.resolveWith<Color>(
                                 (Set<MaterialState> states) {
                               if (states.contains(MaterialState.pressed)) {
-                                return Colors.purple.shade900; // Darker color when pressed
+                                return Colors.purple.shade900;
                               } else if (states.contains(MaterialState.hovered)) {
-                                return Colors.purple.shade700; // Lighter shade on hover
+                                return Colors.purple.shade700;
                               }
-                              return Color(0xFF380230); // Default color
+                              return Color(0xFF380230);
                             },
                           ),
                           foregroundColor: MaterialStateProperty.all(Colors.white),
@@ -342,7 +355,7 @@ class _BookNowState extends State<BookNow> {
                           'Book',
                           style: TextStyle(fontSize: 18),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),

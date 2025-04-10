@@ -111,6 +111,12 @@ flutter:
      - asset/chat_page.jpg
      - asset/chat_page2.jpg
      - asset/Fairytunes_VDO.mp4
+     - asset/classic_music.mp4
+     - asset/Troupes.webp
+     - asset/instruments.webp
+     - asset/Music_Book.webp
+     - asset/Channel.mp4
+
 
   #   - images/a_dot_ham.jpeg
 

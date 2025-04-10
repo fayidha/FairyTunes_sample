@@ -12,7 +12,7 @@ class _VideoWidgetState extends State<VideoWidget> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset('asset/Fairytunes_VDO.mp4')
+    _controller = VideoPlayerController.asset('asset/Channel.mp4')
       ..initialize().then((_) {
         setState(() {}); // Update UI after video loads
         _controller.setLooping(true); // Loop video

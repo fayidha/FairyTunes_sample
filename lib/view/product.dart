@@ -12,47 +12,97 @@ class ProductList extends StatefulWidget {
 
 class _ProductListState extends State<ProductList> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance; // Add this
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   Set<String> wishlist = {};
   String searchQuery = '';
-  String? currentUserId; // To store current user's ID
+  String? currentUserId;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadWishlist();
-    _getCurrentUserId();
-  }
-
-  // Get current user's ID
-  void _getCurrentUserId() {
-    final user = _auth.currentUser;
-    if (user != null) {
-      setState(() {
-        currentUserId = user.uid;
-      });
-    }
-  }
-
-  // Load wishlist items from Firestore
-  void _loadWishlist() async {
-    QuerySnapshot snapshot = await _firestore.collection('wishlist').get();
-    setState(() {
-      wishlist = snapshot.docs.map((doc) => doc.id).toSet();
+    _auth.authStateChanges().listen((User? user) {
+      if (user != null) {
+        setState(() {
+          currentUserId = user.uid;
+        });
+        _loadWishlist();
+      } else {
+        setState(() {
+          currentUserId = null;
+          wishlist.clear();
+          isLoading = false;
+        });
+      }
     });
   }
 
-  void _toggleWishlist(Product product) async {
-    DocumentReference wishlistRef = _firestore.collection('wishlist').doc(product.id);
-    if (wishlist.contains(product.id)) {
-      await wishlistRef.delete();
+  Future<void> _loadWishlist() async {
+    if (currentUserId == null) {
       setState(() {
-        wishlist.remove(product.id);
+        wishlist.clear();
+        isLoading = false;
       });
-    } else {
-      await wishlistRef.set(product.toMap());
+      return;
+    }
+
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('wishlist')
+          .where('userId', isEqualTo: currentUserId)
+          .get();
+
       setState(() {
-        wishlist.add(product.id);
+        wishlist = snapshot.docs.map((doc) => doc.id).toSet();
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load wishlist: $e')),
+      );
+    }
+  }
+
+  Future<void> _toggleWishlist(Product product) async {
+    if (currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please login to add to wishlist')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      DocumentReference wishlistRef = _firestore.collection('wishlist').doc(product.id);
+
+      if (wishlist.contains(product.id)) {
+        await wishlistRef.delete();
+        setState(() {
+          wishlist.remove(product.id);
+        });
+      } else {
+        await wishlistRef.set({
+          ...product.toMap(),
+          'userId': currentUserId,
+          'addedAt': FieldValue.serverTimestamp(),
+        });
+        setState(() {
+          wishlist.add(product.id);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update wishlist: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
       });
     }
   }
@@ -67,6 +117,12 @@ class _ProductListState extends State<ProductList> {
           IconButton(
             icon: Icon(Icons.favorite, color: Colors.white),
             onPressed: () {
+              if (currentUserId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Please login to view your wishlist')),
+                );
+                return;
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => WishlistPage()),
@@ -88,7 +144,9 @@ class _ProductListState extends State<ProductList> {
           },
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : StreamBuilder<QuerySnapshot>(
         stream: _firestore.collection('products').orderBy('createdAt', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -176,13 +234,13 @@ class _ProductListState extends State<ProductList> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '\ ₹${product.price.toStringAsFixed(2)}',
+                                  '₹${product.price.toStringAsFixed(2)}',
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF380230)),
                                 ),
                                 IconButton(
                                   icon: Icon(
                                     isWishlisted ? Icons.favorite : Icons.favorite_border,
-                                    color: Color(0xFF380230),
+                                    color: isWishlisted ? Color(0xFF380230) : Colors.grey,
                                   ),
                                   onPressed: () => _toggleWishlist(product),
                                 ),

@@ -32,12 +32,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       looping: false,
       allowFullScreen: true,
       allowMuting: true,
-      allowPlaybackSpeedChanging: true, // Playback speed option
-      showControlsOnInitialize: false, // Hide controls at start
+      allowPlaybackSpeedChanging: true,
+      showControlsOnInitialize: false,
       autoInitialize: true,
 
       materialProgressColors: ChewieProgressColors(
-        playedColor: Colors.redAccent,
+        playedColor: Color(0xFF380230),
         handleColor: Colors.white,
         backgroundColor: Colors.grey.shade700,
         bufferedColor: Colors.grey.shade400,
@@ -67,15 +67,23 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return _chewieController != null &&
-        _videoController.value.isInitialized
+    return _chewieController != null && _videoController.value.isInitialized
         ? ClipRRect(
-      borderRadius: BorderRadius.circular(15), // Rounded corners
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Chewie(controller: _chewieController!),
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height * 0.5,
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: _videoController.value.size.width,
+            height: _videoController.value.size.height,
+            child: Chewie(controller: _chewieController!),
+          ),
+        ),
       ),
     )
         : const Center(child: CircularProgressIndicator());
   }
+
 }

@@ -167,19 +167,19 @@ class _LoginFormState extends State<LoginForm> {
                   style: TextStyle(color: Color(0xFF380230)),
                 ),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => BottomBarScreen()),
-                  );
-                },
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Color(0xFF380230)),
-                  foregroundColor: MaterialStateProperty.all(Colors.white),
-                ),
-                child: const Text('home'),
-              ),
+              // ElevatedButton(
+              //   onPressed: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (context) => BottomBarScreen()),
+              //     );
+              //   },
+              //   style: ButtonStyle(
+              //     backgroundColor: MaterialStateProperty.all(Color(0xFF380230)),
+              //     foregroundColor: MaterialStateProperty.all(Colors.white),
+              //   ),
+              //   child: const Text('home'),
+              // ),
             ],
           ),
         ),

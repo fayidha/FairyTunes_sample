@@ -175,6 +175,7 @@ class _TeacherAddState extends State<TeacherAdd> {
       }
     }
   }
+
   Future<void> pickFiles() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -190,7 +191,8 @@ class _TeacherAddState extends State<TeacherAdd> {
             descriptionControllers.add(TextEditingController());
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("File '${file.name}' exceeds 5MB limit and was not added.")),
+              SnackBar(content: Text(
+                  "File '${file.name}' exceeds 5MB limit and was not added.")),
             );
           }
         }
@@ -205,7 +207,10 @@ class _TeacherAddState extends State<TeacherAdd> {
     for (int i = 0; i < selectedNotes.length; i++) {
       File file = File(selectedNotes[i]['file'].path!);
       String fileName = selectedNotes[i]['file'].name;
-      String noteId = FirebaseFirestore.instance.collection("notes").doc().id;
+      String noteId = FirebaseFirestore.instance
+          .collection("notes")
+          .doc()
+          .id;
 
       TaskSnapshot uploadTask = await FirebaseStorage.instance
           .ref('notes/${user.uid}/$fileName')
@@ -223,7 +228,8 @@ class _TeacherAddState extends State<TeacherAdd> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${selectedNotes.length} PDFs uploaded successfully")),
+      SnackBar(
+          content: Text("${selectedNotes.length} PDFs uploaded successfully")),
     );
     setState(() {
       selectedNotes.clear();
@@ -250,20 +256,21 @@ class _TeacherAddState extends State<TeacherAdd> {
   Future<void> deleteNote(String noteId) async {
     bool confirmDelete = await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Delete Note"),
-        content: Text("Are you sure you want to delete this note?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text("Cancel"),
+      builder: (context) =>
+          AlertDialog(
+            title: Text("Delete Note"),
+            content: Text("Are you sure you want to delete this note?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text("Delete", style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     ) ?? false;
 
     if (confirmDelete) {
@@ -294,8 +301,12 @@ class _TeacherAddState extends State<TeacherAdd> {
           }
 
           if (snapshot.hasData && snapshot.data!.exists) {
-            Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
-            return _isEditing ? _buildRegistrationForm(data) : _buildProfileCard(data);
+            Map<String, dynamic> data = snapshot.data!.data() as Map<
+                String,
+                dynamic>;
+            return _isEditing
+                ? _buildRegistrationForm(data)
+                : _buildProfileCard(data);
           } else {
             // User is not registered - show registration form
             return _buildRegistrationForm(null);
@@ -326,14 +337,17 @@ class _TeacherAddState extends State<TeacherAdd> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Welcome Music Teacher", style: TextStyle(
-                    fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
                 SizedBox(height: 2),
                 Text("Manage your notes and chats",
                     style: TextStyle(fontSize: 14, color: Colors.white70)),
               ],
             ),
           ),
-          SizedBox(height: 20), // Spacing between header and profile card
+          SizedBox(height: 20),
+          // Spacing between header and profile card
 
           // Profile Card
           Container(
@@ -362,30 +376,40 @@ class _TeacherAddState extends State<TeacherAdd> {
                 CircleAvatar(
                   radius: 50,
                   backgroundImage: _profileImage.isNotEmpty
-                      ? NetworkImage(_profileImage) // Display the fetched profile image
-                      : const AssetImage('asset/210379377.png') as ImageProvider,
+                      ? NetworkImage(
+                      _profileImage) // Display the fetched profile image
+                      : const AssetImage(
+                      'asset/210379377.png') as ImageProvider,
                 ),
                 const SizedBox(height: 10),
                 Text(data['name'] ?? "Unknown User",
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    style: const TextStyle(fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
                 const SizedBox(height: 5),
                 Text(data['email'] ?? "unknown@gmail.com",
-                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70)),
                 const SizedBox(height: 5),
                 Text("Phone: ${data['phone'] ?? "N/A"}",
-                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70)),
                 const SizedBox(height: 5),
                 Text("Category: ${data['category'] ?? "N/A"}",
-                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70)),
                 const SizedBox(height: 5),
                 Text("Qualification: ${data['qualification'] ?? "N/A"}",
-                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70)),
                 const SizedBox(height: 5),
                 Text("Experience: ${data['experience'] ?? "N/A"}",
-                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70)),
                 const SizedBox(height: 5),
                 Text("Address: ${data['address'] ?? "N/A"}",
-                    style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70)),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
@@ -398,11 +422,13 @@ class _TeacherAddState extends State<TeacherAdd> {
               ],
             ),
           ),
-          SizedBox(height: 20), // Spacing between profile card and notes section
+          SizedBox(height: 20),
+          // Spacing between profile card and notes section
 
           // Upload Notes Section
           _buildUploadNotesSection(),
-          SizedBox(height: 20), // Spacing between upload and view notes sections
+          SizedBox(height: 20),
+          // Spacing between upload and view notes sections
 
           // View Notes Section
           _buildViewNotesSection(),
@@ -423,7 +449,8 @@ class _TeacherAddState extends State<TeacherAdd> {
           ElevatedButton.icon(
             onPressed: pickFiles,
             icon: Icon(Icons.upload_file, color: Colors.white),
-            label: Text("Select PDF Notes", style: TextStyle(color: Colors.white)),
+            label: Text(
+                "Select PDF Notes", style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
           ),
           Column(
@@ -431,10 +458,13 @@ class _TeacherAddState extends State<TeacherAdd> {
               return Column(
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => viewPDF(selectedNotes[index]['file'].path!),
+                    onPressed: () =>
+                        viewPDF(selectedNotes[index]['file'].path!),
                     icon: Icon(Icons.picture_as_pdf, color: Colors.white),
-                    label: Text("View PDF", style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF380230)),
+                    label: Text(
+                        "View PDF", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF380230)),
                   ),
                   TextField(
                     controller: descriptionControllers[index],
@@ -470,7 +500,8 @@ class _TeacherAddState extends State<TeacherAdd> {
           .where("teacherId", isEqualTo: user.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return Center(child: CircularProgressIndicator());
         final notes = snapshot.data!.docs;
 
         if (notes.isEmpty) {
@@ -479,7 +510,8 @@ class _TeacherAddState extends State<TeacherAdd> {
 
         return Column(
           children: notes.map((note) {
-            TextEditingController editController = TextEditingController(text: note['description']);
+            TextEditingController editController = TextEditingController(
+                text: note['description']);
             bool isEditing = false;
 
             return StatefulBuilder(
@@ -494,7 +526,8 @@ class _TeacherAddState extends State<TeacherAdd> {
                         if (isEditing)
                           TextField(
                             controller: editController,
-                            decoration: InputDecoration(labelText: "Edit Description"),
+                            decoration: InputDecoration(
+                                labelText: "Edit Description"),
                           ),
                       ],
                     ),
@@ -505,7 +538,8 @@ class _TeacherAddState extends State<TeacherAdd> {
                           IconButton(
                             icon: Icon(Icons.save),
                             onPressed: () async {
-                              await editDescription(note.id, editController.text);
+                              await editDescription(
+                                  note.id, editController.text);
                               setState(() {
                                 isEditing = false;
                               });
@@ -573,10 +607,13 @@ class _TeacherAddState extends State<TeacherAdd> {
                     : null,
               ),
             ),
+
             const SizedBox(height: 20),
             _buildTextField("Teacher Name", _nameController),
-            _buildTextField("Email", _emailController, keyboardType: TextInputType.emailAddress),
-            _buildTextField("Phone Number", _phoneController, keyboardType: TextInputType.phone),
+            _buildTextField("Email", _emailController,
+                keyboardType: TextInputType.emailAddress),
+            _buildTextField("Phone Number", _phoneController,
+                keyboardType: TextInputType.phone),
             _buildTextField("Category", _categoryController),
             _buildTextField("Qualification", _qualificationController),
             _buildTextField("Experience", _experienceController),
@@ -608,9 +645,28 @@ class _TeacherAddState extends State<TeacherAdd> {
       keyboardType: keyboardType,
       controller: controller,
       validator: (value) {
-        if (value == null || value.isEmpty) {
+        if (value == null || value
+            .trim()
+            .isEmpty) {
           return "Please enter a $label";
         }
+
+        if (label.toLowerCase().contains("email")) {
+          // Email validation using RegExp
+          final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+          if (!emailRegex.hasMatch(value.trim())) {
+            return "Please enter a valid email address";
+          }
+        }
+
+        if (label.toLowerCase().contains("phone")) {
+          // Basic phone number validation: must be digits and 10 characters long
+          final phoneRegex = RegExp(r"^[0-9]{10}$");
+          if (!phoneRegex.hasMatch(value.trim())) {
+            return "Please enter a valid 10-digit phone number";
+          }
+        }
+
         return null;
       },
     );

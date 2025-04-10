@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dupepro/bookDetail.dart';
+import 'package:dupepro/Blinking.dart';
+import 'package:dupepro/ShimmerText.dart';
 import 'package:dupepro/controller/Product_Controller.dart';
 import 'package:dupepro/controller/session.dart';
 import 'package:dupepro/location.dart';
@@ -8,7 +9,6 @@ import 'package:dupepro/troups.dart';
 import 'package:dupepro/videoplayer.dart';
 import 'package:dupepro/view/login.dart';
 import 'package:dupepro/view/logovdo.dart';
-import 'package:dupepro/view/notification_artist.dart';
 import 'package:dupepro/view/product.dart';
 import 'package:dupepro/view/productcategory.dart';
 import 'package:dupepro/view/teachers.dart';
@@ -216,14 +216,14 @@ class _HomePageState extends State<HomePage> {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(
-                          child: CircularProgressIndicator()); // Loading state
+                          child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
                       return Center(
                           child:
-                              Text("Error: ${snapshot.error}")); // Show error
+                              Text("Error: ${snapshot.error}"));
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return Center(
-                          child: Text("No categories found")); // No data case
+                          child: Text("No categories found"));
                     }
 
                     // Extract categories & images dynamically
@@ -364,7 +364,7 @@ class _HomePageState extends State<HomePage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15)),
               elevation: 12,
-              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               child: Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: StreamBuilder<QuerySnapshot>(
@@ -457,14 +457,16 @@ class _HomePageState extends State<HomePage> {
             const Divider(thickness: 1, color: Colors.grey),
             const SizedBox(height: 40),
 
-            Text(
-              "Deals for you..",
+            BlinkingText(
+              text: "Deals for you..",
               style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.deepPurpleAccent),
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                fontStyle: FontStyle.italic,
+                color: Colors.deepPurpleAccent,
+              ),
             ),
+
             const SizedBox(height: 30),
             Text('Choose your need! '),
             Icon(Icons.check_box),
@@ -516,7 +518,7 @@ class _HomePageState extends State<HomePage> {
                               borderRadius: BorderRadius.vertical(
                                   top: Radius.circular(10)),
                               child: Image.asset(
-                                'asset/prod.avif',
+                                'asset/instruments.webp',
                                 height: 100,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
@@ -634,7 +636,7 @@ class _HomePageState extends State<HomePage> {
                               borderRadius: BorderRadius.vertical(
                                   top: Radius.circular(10)),
                               child: Image.asset(
-                                'asset/teach.jpg',
+                                'asset/Music_Book.webp',
                                 height: 100,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
@@ -664,15 +666,8 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 50),
-            Text(
-              "🎶 Book your favorite music bands and tracks today for an unforgettable experience!",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                fontStyle: FontStyle.italic,
-                color: Colors.deepPurpleAccent,
-              ),
-            ),
+            FancyPromoText(),
+
             const SizedBox(height: 50),
 
             StreamBuilder<QuerySnapshot>(
@@ -767,7 +762,7 @@ class _HomePageState extends State<HomePage> {
             //       Navigator.push(
             //           context,
             //           MaterialPageRoute(
-            //               builder: (context) => NotificationByTime()));
+            //               builder: (context) => ProgramNotificationSystem()));
             //     },
             //     child: Text('Teacher add notes')),
           ],

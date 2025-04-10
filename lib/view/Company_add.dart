@@ -49,11 +49,11 @@ class _CompanyAddState extends State<CompanyAdd> {
       }
 
       DocumentSnapshot userSnapshot =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (userSnapshot.exists) {
         Map<String, dynamic> userData =
-            userSnapshot.data() as Map<String, dynamic>;
+        userSnapshot.data() as Map<String, dynamic>;
 
         setState(() {
           _name = userData['name'] ?? 'Not Available';
@@ -85,11 +85,11 @@ class _CompanyAddState extends State<CompanyAdd> {
 
       // Fetch seller details using UID
       DocumentSnapshot sellerSnapshot =
-          await FirebaseFirestore.instance.collection('sellers').doc(uid).get();
+      await FirebaseFirestore.instance.collection('sellers').doc(uid).get();
 
       if (sellerSnapshot.exists) {
         Map<String, dynamic> sellerData =
-            sellerSnapshot.data() as Map<String, dynamic>;
+        sellerSnapshot.data() as Map<String, dynamic>;
 
         setState(() {
           _companyName = sellerData['companyName'] ?? '';
@@ -114,7 +114,7 @@ class _CompanyAddState extends State<CompanyAdd> {
   // Method to pick an image from the gallery
   Future<void> _pickImage() async {
     final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
+    await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = pickedFile;
@@ -198,13 +198,13 @@ class _CompanyAddState extends State<CompanyAdd> {
         padding: const EdgeInsets.all(16.0),
         child: _isFetchingUserData
             ? const Center(
-                child:
-                    CircularProgressIndicator()) // Show loading spinner while fetching user data
+            child:
+            CircularProgressIndicator()) // Show loading spinner while fetching user data
             : Column(
-                children: [
-                  _isEditing ? _buildEditableForm() : _buildProfileCard(),
-                ],
-              ),
+          children: [
+            _isEditing ? _buildEditableForm() : _buildProfileCard(),
+          ],
+        ),
       ),
     );
   }
@@ -240,7 +240,7 @@ class _CompanyAddState extends State<CompanyAdd> {
               radius: 50,
               backgroundImage: _profileImageUrl != null
                   ? NetworkImage(
-                      _profileImageUrl!) // Use NetworkImage for Firebase URL
+                  _profileImageUrl!) // Use NetworkImage for Firebase URL
                   : null,
               child: _profileImageUrl == null
                   ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
@@ -329,7 +329,7 @@ class _CompanyAddState extends State<CompanyAdd> {
               radius: 50,
               backgroundColor: Colors.grey[200],
               backgroundImage:
-                  _image != null ? FileImage(File(_image!.path)) : null,
+              _image != null ? FileImage(File(_image!.path)) : null,
               child: _image == null
                   ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
                   : null,
@@ -345,13 +345,23 @@ class _CompanyAddState extends State<CompanyAdd> {
           const SizedBox(height: 10),
 
           // Email Input (Editable)
-          _buildTextField("Email", (value) {
-            _email = value;
-          },
-              keyboardType: TextInputType.emailAddress,
-              initialValue: _email,
-              enabled: true),
-
+          _buildTextField(
+            "Email",
+                (value) {
+              _email = value;
+            },
+            keyboardType: TextInputType.emailAddress,
+            initialValue: _email,
+            enabled: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter an email address';
+              } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                return 'Enter a valid email address';
+              }
+              return null;
+            },
+          ),
           const SizedBox(height: 10),
 
           // Company Name Input
@@ -362,9 +372,21 @@ class _CompanyAddState extends State<CompanyAdd> {
           const SizedBox(height: 10),
 
           // Phone Number Input
-          _buildTextField("Phone Number", (value) {
-            _phone = value;
-          }, keyboardType: TextInputType.phone),
+          _buildTextField(
+            "Phone Number",
+                (value) {
+              _phone = value;
+            },
+            keyboardType: TextInputType.phone,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter a phone number';
+              } else if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                return 'Enter a valid 10-digit phone number';
+              }
+              return null;
+            },
+          ),
 
           const SizedBox(height: 10),
 
@@ -387,13 +409,13 @@ class _CompanyAddState extends State<CompanyAdd> {
             child: _isLoading
                 ? const CircularProgressIndicator() // Show spinner when loading
                 : ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF380230),
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: _saveSeller,
-                    child: const Text("Save"),
-                  ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF380230),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: _saveSeller,
+              child: const Text("Save"),
+            ),
           ),
         ],
       ),
@@ -401,22 +423,27 @@ class _CompanyAddState extends State<CompanyAdd> {
   }
 
   // Helper method for creating text fields with optional initial values
-  Widget _buildTextField(String label, Function(String) onChanged,
-      {String? initialValue,
-      TextInputType keyboardType = TextInputType.text,
-      bool enabled = true}) {
+  Widget _buildTextField(String label,
+      Function(String) onChanged, {
+        String? initialValue,
+        TextInputType keyboardType = TextInputType.text,
+        bool enabled = true,
+        String? Function(String?)? validator,
+      }) {
     return TextFormField(
       initialValue: initialValue,
       decoration: InputDecoration(labelText: label),
       keyboardType: keyboardType,
       onChanged: onChanged,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return "Please enter a $label";
-        }
-        return null;
-      },
+      validator: validator ??
+              (value) {
+            if (value == null || value.isEmpty) {
+              return "Please enter a $label";
+            }
+            return null;
+          },
       enabled: enabled,
     );
   }
 }
+

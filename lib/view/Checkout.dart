@@ -1,17 +1,16 @@
 import 'package:dupepro/model/cart_model.dart';
 import 'package:dupepro/view/payment.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-
 class CheckoutPage extends StatefulWidget {
   final double totalAmount;
-  final List<CartItem> cartItems; // Accept the list of cart items
+  final List<CartItem> cartItems;
 
   const CheckoutPage({required this.totalAmount, required this.cartItems});
-
 
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
@@ -20,6 +19,7 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   User? _currentUser = FirebaseAuth.instance.currentUser;
   String? selectedAddressId;
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
@@ -36,7 +36,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
         .snapshots();
   }
 
-  // In CheckoutPage.dart
+  String? _validateRequired(String? value, String fieldName) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter $fieldName';
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter phone number';
+    }
+    if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+      return 'Enter exactly 10-digit phone number';
+    }
+    return null;
+  }
+
   void _confirmOrder() {
     if (selectedAddressId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -45,7 +61,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
-    // Fetch the selected address details
     FirebaseFirestore.instance
         .collection('locations')
         .doc(selectedAddressId)
@@ -59,19 +74,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'state': doc['state'],
           'zip': doc['zip'],
           'country': doc['country'],
-          'landmark': doc['landmark'], // This can be null
+          'landmark': doc['landmark'],
           'phone': doc['phone'],
           'amount': widget.totalAmount.toString(),
-          'email': _currentUser!.email, // This can be null
+          'email': _currentUser!.email,
         };
 
-        // Navigate to the PaymentScreen with cart item details
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => PaymentScreen(
               shippingAddress: shippingAddress,
-              cartItems: widget.cartItems, // Pass the list of cart items
+              cartItems: widget.cartItems,
             ),
           ),
         );
@@ -90,37 +104,64 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
           child: Container(
             padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Add New Address", style: GoogleFonts.lora(fontSize: 22, fontWeight: FontWeight.bold)),
-                SizedBox(height: 16),
-                _buildTextField(_nameController, "Full Name"),
-                _buildTextField(_addressController, "Address"),
-                _buildTextField(_cityController, "City"),
-                _buildTextField(_stateController, "State"),
-                _buildTextField(_zipController, "ZIP Code"),
-                _buildTextField(_countryController, "Country"),
-                _buildTextField(_landmarkController, "Landmark (optional)"),
-                _buildTextField(_phoneController, "Phone Number"),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _saveAddress,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFEBB21D),
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Add New Address",
+                      style: GoogleFonts.lora(fontSize: 22, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 16),
+                  _buildTextField(_nameController, "Full Name",
+                      validator: (value) => _validateRequired(value, "name")),
+                  _buildTextField(_addressController, "Address",
+                      validator: (value) => _validateRequired(value, "address")),
+                  _buildTextField(_cityController, "City",
+                      validator: (value) => _validateRequired(value, "city")),
+                  _buildTextField(_stateController, "State",
+                      validator: (value) => _validateRequired(value, "state")),
+                  _buildTextField(_zipController, "ZIP Code",
+                      validator: (value) => _validateRequired(value, "ZIP code")),
+                  _buildTextField(_countryController, "Country",
+                      validator: (value) => _validateRequired(value, "country")),
+                  _buildTextField(_landmarkController, "Landmark (optional)"),
+                  _buildTextField(
+                    _phoneController,
+                    "Phone Number",
+                    validator: _validatePhone,
+                    keyboardType: TextInputType.phone,
+                    maxLength: 10,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        _saveAddress();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFEBB21D),
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "Save Address",
+                        style: GoogleFonts.lora(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                      ),
                     ),
                   ),
-                  child: Center(
-                    child: Text(
-                      "Save Address",
-                      style: GoogleFonts.lora(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -128,10 +169,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label) {
+  Widget _buildTextField(
+      TextEditingController controller,
+      String label, {
+        String? Function(String?)? validator,
+        TextInputType? keyboardType,
+        int? maxLength,
+        List<TextInputFormatter>? inputFormatters,
+      }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
@@ -139,24 +187,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
             borderRadius: BorderRadius.circular(10),
           ),
         ),
+        validator: validator,
+        keyboardType: keyboardType,
+        maxLength: maxLength,
+        inputFormatters: inputFormatters,
       ),
     );
   }
 
-  void _saveAddress() async {
-    if (_nameController.text.isEmpty ||
-        _addressController.text.isEmpty ||
-        _cityController.text.isEmpty ||
-        _stateController.text.isEmpty ||
-        _zipController.text.isEmpty ||
-        _countryController.text.isEmpty ||
-        _phoneController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please fill all required fields")),
-      );
-      return;
-    }
-
+  Future<void> _saveAddress() async {
     await FirebaseFirestore.instance.collection('locations').add({
       'userId': _currentUser!.uid,
       'name': _nameController.text,
@@ -169,7 +208,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'phone': _phoneController.text,
     });
 
-    // Clear controllers
     _nameController.clear();
     _addressController.clear();
     _cityController.clear();
@@ -179,7 +217,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _landmarkController.clear();
     _phoneController.clear();
 
-    Navigator.pop(context); // Close the bottom sheet
+    Navigator.pop(context);
   }
 
   @override
@@ -197,10 +235,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Select Address:", style: GoogleFonts.lora(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("Select Address:",
+                    style: GoogleFonts.lora(fontSize: 18, fontWeight: FontWeight.bold)),
                 TextButton(
                   onPressed: _addNewAddress,
-                  child: Text("+ Add New", style: GoogleFonts.lora(color: Color(0xFFEBB21D), fontSize: 16)),
+                  child: Text("+ Add New",
+                      style: GoogleFonts.lora(color: Color(0xFFEBB21D), fontSize: 16)),
                 ),
               ],
             ),
@@ -225,7 +265,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       elevation: 2,
                       child: RadioListTile(
-                        title: Text(address['name'], style: GoogleFonts.lora(fontWeight: FontWeight.bold)),
+                        title: Text(address['name'],
+                            style: GoogleFonts.lora(fontWeight: FontWeight.bold)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -271,7 +312,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   child: Center(
                     child: Text(
                       "Proceed to Payment",
-                      style: GoogleFonts.lora(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                      style: GoogleFonts.lora(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black),
                     ),
                   ),
                 ),
