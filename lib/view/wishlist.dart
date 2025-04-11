@@ -2,12 +2,26 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dupepro/model/Product_model.dart';
 import 'package:dupepro/view/detailPage.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class WishlistPage extends StatelessWidget {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
+    User? currentUser = _auth.currentUser;
+
+    if (currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text("Wishlist", style: TextStyle(color: Colors.white)),
+          backgroundColor: Color(0xFF380230),
+        ),
+        body: Center(child: Text("Please login to view your wishlist")),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
@@ -17,7 +31,10 @@ class WishlistPage extends StatelessWidget {
         elevation: 0,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('wishlist').snapshots(),
+        stream: _firestore
+            .collection('wishlist')
+            .where('userId', isEqualTo: currentUser.uid) // <-- filter by current user
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());

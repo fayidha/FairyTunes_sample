@@ -211,8 +211,8 @@ class _AddProductState extends State<AddProduct> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _sizesController,
-                  decoration: const InputDecoration(labelText: "Sizes (comma separated)", border: OutlineInputBorder()),
-                  validator: (value) => value == null || value.isEmpty ? "Enter sizes" : null,
+                  decoration: const InputDecoration(labelText: "Dimensions (comma separated)", border: OutlineInputBorder()),
+                  validator: (value) => value == null || value.isEmpty ? "Enter Dimensions" : null,
                 ),
                 const SizedBox(height: 10),
                 TextFormField(

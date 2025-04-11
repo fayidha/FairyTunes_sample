@@ -1,3 +1,4 @@
+import 'package:dupepro/Blinking.dart';
 import 'package:dupepro/bottomBar.dart';
 import 'package:dupepro/controller/auth_controller.dart';
 import 'package:dupepro/view/forgotpass.dart';
@@ -26,26 +27,34 @@ class _LoginFormState extends State<LoginForm> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      String email =_emailController.text.trim();
-      String password=_passwordController.text.trim();
+      String email = _emailController.text.trim();
+      String password = _passwordController.text.trim();
       String? result = await _authController.loginUser(email, password);
 
-      if(result==null)
-        {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login successful!')),
-      );
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => BottomBarScreen()),
-      );
-    } else
-      {
+      if (result == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result)),
+          const SnackBar(content: Text('Login successful!')),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => BottomBarScreen()),
+        );
+      } else {
+        String friendlyMessage;
+
+        if (result.toLowerCase().contains('invalid') ||
+            result.toLowerCase().contains('incorrect') ||
+            result.toLowerCase().contains('supplied auth credential')) {
+          friendlyMessage = 'Please enter a valid email or password.';
+        } else {
+          friendlyMessage = result; // fallback to original message
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(friendlyMessage)),
         );
       }
-      }
+    }
   }
 
   @override
@@ -68,11 +77,15 @@ class _LoginFormState extends State<LoginForm> {
           child: ListView(
             children: [
               const SizedBox(height: 16),
-              Text(
-                'LOGIN NOW ! ',
-                style:
-                TextStyle(color: Color(0xFF380230), fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              const Center(
+                child: BlinkingText(
+                  text: 'LOGIN NOW !',
+                  style: TextStyle(
+                    color: Color(0xFF380230),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               TextFormField(

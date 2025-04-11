@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 class GroupProfile extends StatefulWidget {
   final String groupId;
-  final String currentUserId; // Add current user ID to check if they're admin
+  final String currentUserId;
 
   const GroupProfile({
     Key? key,
@@ -61,8 +61,11 @@ class _GroupProfileState extends State<GroupProfile> {
       adminData = await _fetchUserData(adminId);
     }
 
+    membersData = {}; // Clear existing data before fetching
     for (String memberId in memberIds) {
-      membersData[memberId] = await _fetchUserData(memberId);
+      if (memberId != adminId) { // Don't fetch admin as member
+        membersData[memberId] = await _fetchUserData(memberId);
+      }
     }
   }
 
@@ -105,13 +108,12 @@ class _GroupProfileState extends State<GroupProfile> {
     final List<dynamic> members = groupData!['members'] ?? [];
 
     try {
-      // Update the group document with new admin and updated members list
       await FirebaseFirestore.instance
           .collection('groups')
           .doc(widget.groupId)
           .update({
         'admin': newAdminId,
-        'members': FieldValue.arrayUnion([currentAdminId]), // Add old admin to members
+        'members': FieldValue.arrayUnion([currentAdminId]),
       });
 
       // Refresh the data
@@ -127,6 +129,140 @@ class _GroupProfileState extends State<GroupProfile> {
       );
     }
   }
+
+  Future<void> _removeMember(String memberId) async {
+    if (groupData == null || groupData!['admin'] == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .update({
+        'members': FieldValue.arrayRemove([memberId]),
+      });
+
+      // Refresh the data
+      await _fetchGroupDetails();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Member removed successfully')),
+      );
+    } catch (e) {
+      print("Error removing member: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to remove member')),
+      );
+    }
+  }
+
+  Future<void> _leaveGroup() async {
+    if (groupData == null) return;
+
+    bool isAdmin = adminData != null && adminData!['uid'] == widget.currentUserId;
+
+    if (isAdmin) {
+      // Admin wants to leave - need to assign new admin first
+      if (membersData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Cannot leave as last member. Delete group instead.')),
+        );
+        return;
+      }
+
+      // Show dialog to select new admin
+      await _showSelectNewAdminDialog();
+    } else {
+      // Regular member can just leave
+      await _confirmLeaveGroup();
+    }
+  }
+
+  Future<void> _confirmLeaveGroup() async {
+    bool confirm = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Leave Group"),
+          content: Text("Are you sure you want to leave this group?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text("Leave"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .update({
+          'members': FieldValue.arrayRemove([widget.currentUserId]),
+        });
+
+        // Close the group profile page after leaving
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('You have left the group')),
+        );
+      } catch (e) {
+        print("Error leaving group: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to leave group')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showSelectNewAdminDialog() async {
+    String? selectedMemberId = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        String? tempSelectedId;
+
+        return AlertDialog(
+          title: Text("Select New Admin"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: membersData.entries.map((entry) {
+                return RadioListTile<String>(
+                  title: Text(entry.value['name'] ?? 'Unknown Member'),
+                  value: entry.key,
+                  groupValue: tempSelectedId,
+                  onChanged: (String? value) {
+                    tempSelectedId = value;
+                    Navigator.pop(context, value);
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedMemberId != null) {
+      // First change admin, then leave
+      await _changeAdmin(selectedMemberId!);
+      await _confirmLeaveGroup();
+    }
+  }
+
   void _showChangeAdminDialog(String memberId, String memberName) {
     showDialog(
       context: context,
@@ -152,13 +288,55 @@ class _GroupProfileState extends State<GroupProfile> {
     );
   }
 
+  void _showRemoveMemberDialog(String memberId, String memberName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Remove Member"),
+          content: Text("Are you sure you want to remove $memberName from the group?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _removeMember(memberId);
+              },
+              child: Text("Remove"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isCurrentUserAdmin = adminData != null &&
         adminData!['uid'] == widget.currentUserId;
 
     return Scaffold(
-      appBar: AppBar(title: Text("Group Profile")),
+      appBar: AppBar(
+        title: Text("Group Profile"),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'leave_group') {
+                _leaveGroup();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'leave_group',
+                child: Text('Leave Group'),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : groupData == null
@@ -208,13 +386,32 @@ class _GroupProfileState extends State<GroupProfile> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(member['artistType'] ?? 'Unknown'),
-                      if (isCurrentUserAdmin && memberId != adminData!['uid'])
-                        IconButton(
-                          icon: Icon(Icons.admin_panel_settings, color: Colors.blue),
-                          onPressed: () => _showChangeAdminDialog(
-                              memberId,
-                              member['name'] ?? 'this member'
-                          ),
+                      if (isCurrentUserAdmin)
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert),
+                          onSelected: (value) {
+                            if (value == 'change_admin') {
+                              _showChangeAdminDialog(
+                                  memberId,
+                                  member['name'] ?? 'this member'
+                              );
+                            } else if (value == 'remove_member') {
+                              _showRemoveMemberDialog(
+                                  memberId,
+                                  member['name'] ?? 'this member'
+                              );
+                            }
+                          },
+                          itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'change_admin',
+                              child: Text('Make Admin'),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'remove_member',
+                              child: Text('Remove Member'),
+                            ),
+                          ],
                         ),
                     ],
                   ),

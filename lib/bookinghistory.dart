@@ -127,7 +127,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('My Bookings')),
+      appBar: AppBar(title: Text('My Bookings'),centerTitle: true,),
       body: userId == null
           ? Center(child: CircularProgressIndicator())
           : StreamBuilder<QuerySnapshot>(

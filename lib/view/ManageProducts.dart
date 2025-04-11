@@ -30,8 +30,9 @@ class _ManageProductsState extends State<ManageProducts> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Manage Products"),
+        title: const Text("Manage Products",style: TextStyle(color: Colors.white),),
         backgroundColor: const Color(0xFF380230),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance

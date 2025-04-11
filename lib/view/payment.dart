@@ -35,7 +35,51 @@ class _PaymentScreenState extends State<PaymentScreen> {
     super.dispose();
   }
 
+// Add this method to your _PaymentScreenState class
+  Future<void> _handleOrderCancellation(String orderId) async {
+    try {
+      // Get the order document
+      DocumentSnapshot orderSnapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .doc(orderId)
+          .get();
 
+      if (orderSnapshot.exists) {
+        Map<String, dynamic> orderData = orderSnapshot.data() as Map<String, dynamic>;
+
+        // Restore stock for each product in the order
+        for (var item in orderData['cartItems']) {
+          String productId = item['productId'];
+          int quantity = item['quantity'];
+
+          DocumentReference productRef = FirebaseFirestore.instance
+              .collection('products')
+              .doc(productId);
+
+          DocumentSnapshot productSnapshot = await productRef.get();
+
+          if (productSnapshot.exists) {
+            int currentQuantity = productSnapshot['quantity'] ?? 0;
+            await productRef.update({
+              'quantity': currentQuantity + quantity
+            });
+          }
+        }
+
+        // Update order status to 'cancelled'
+        await FirebaseFirestore.instance
+            .collection('orders')
+            .doc(orderId)
+            .update({
+          'status': 'cancelled',
+          'cancelledAt': FieldValue.serverTimestamp()
+        });
+      }
+    } catch (e) {
+      debugPrint('Error cancelling order: $e');
+      throw e; // Re-throw to handle in the UI
+    }
+  }
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
 
 
@@ -82,7 +126,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
         if (productSnapshot.exists) {
           int currentQuantity = productSnapshot['quantity'] ?? 0;
-          int newQuantity = (currentQuantity - purchasedQuantity).clamp(0, currentQuantity); // Prevent negative stock
+          int newQuantity = (currentQuantity - purchasedQuantity).clamp(0, currentQuantity);
 
           await productRef.update({'quantity': newQuantity});
         }
@@ -114,6 +158,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
     }
   }
+
 
   void _handlePaymentError(PaymentFailureResponse response) {
     ScaffoldMessenger.of(context).showSnackBar(

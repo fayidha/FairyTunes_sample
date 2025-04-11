@@ -102,6 +102,7 @@ class _AddAdvertisementPageState extends State<AddAdvertisementPage> {
             ),
           ),
         ),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         child: Padding(

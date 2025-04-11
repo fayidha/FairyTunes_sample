@@ -99,7 +99,7 @@ class _ProductDetailState extends State<ProductDetail> {
 
     // Check if color and size are selected
     if (_selectedColor == null || _selectedSize == null) {
-      print("Color or size not selected"); // Debug print
+      print("Color or Dimensions not selected"); // Debug print
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select color and size!')),
       );
@@ -359,7 +359,7 @@ class _ProductDetailState extends State<ProductDetail> {
                             SizedBox(height: 15),
                             // Display sizes
                             Text(
-                              "Available Sizes",
+                              "Available Dimensions",
                               style: GoogleFonts.lora(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                             Wrap(
