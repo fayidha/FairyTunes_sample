@@ -212,39 +212,36 @@ class _HomePageState extends State<HomePage> {
                 height: 120,
                 child: FutureBuilder<List<Product>>(
                   future: ProductController().getAllProducts(),
-                  // Correct way to call the method
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                          child: CircularProgressIndicator());
+                      return Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
-                      return Center(
-                          child:
-                              Text("Error: ${snapshot.error}"));
+                      return Center(child: Text("Error: ${snapshot.error}"));
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(
-                          child: Text("No categories found"));
+                      return Center(child: Text("No categories found"));
                     }
 
-                    // Extract categories & images dynamically
+                    // Group products by category and get first image for each category
                     Map<String, String> categoryImages = {};
+                    Set<String> uniqueCategories = {};
+
                     for (var product in snapshot.data!) {
-                      categoryImages.putIfAbsent(
-                          product.category,
-                          () => product.imageUrls.isNotEmpty
-                              ? product.imageUrls.first
-                              : 'assets/default.png');
+                      if (!uniqueCategories.contains(product.category)) {
+                        uniqueCategories.add(product.category);
+                        categoryImages[product.category] = product.imageUrls.isNotEmpty
+                            ? product.imageUrls.first
+                            : 'assets/default.png';
+                      }
                     }
 
-                    List<String> categories = categoryImages.keys.toList();
+                    List<String> categories = uniqueCategories.toList();
 
                     return ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: categories.length,
                       itemBuilder: (context, index) {
                         String category = categories[index];
-                        String imageUrl =
-                            categoryImages[category] ?? 'assets/default.png';
+                        String imageUrl = categoryImages[category] ?? 'assets/default.png';
 
                         return Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12.0),
@@ -254,7 +251,8 @@ class _HomePageState extends State<HomePage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => ProductCategoryPage(
-                                      selectedCategory: category),
+                                    selectedCategory: category,
+                                  ),
                                 ),
                               );
                             },
@@ -265,15 +263,15 @@ class _HomePageState extends State<HomePage> {
                                   backgroundColor: Colors.grey[200],
                                   backgroundImage: imageUrl.startsWith('http')
                                       ? NetworkImage(imageUrl)
-                                      : AssetImage('assets/default.png')
-                                          as ImageProvider,
+                                      : AssetImage('assets/default.png') as ImageProvider,
                                 ),
                                 SizedBox(height: 5),
                                 Text(
                                   category,
                                   style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
